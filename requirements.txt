@@ -1,0 +1,16 @@
+# AI Galgame 依赖包
+# =====================================
+
+# OpenAI API (用于 GPT-4 和 DALL-E 3)
+openai>=1.0.0
+
+# Pygame (游戏引擎)
+pygame>=2.5.0
+
+# 其他工具
+python-dotenv>=1.0.0  # 环境变量管理
+pillow>=10.0.0        # 图像处理
+requests>=2.31.0      # HTTP 请求（下载生成的图像）
+
+# Google Gemini API
+google-generativeai>=0.5.0

@@ -1,0 +1,1132 @@
+2025-12-08 19:11:43,758 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:11:43,758 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:11:43,758 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:11:44,130 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:11:44,130 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:11:44,130 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:11:44,130 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:11:44,130 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:11:44,130 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:11:44,130 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:11:44,130 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:11:44,130 - workflow - INFO - ============================================================
+2025-12-08 19:11:44,130 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:11:44,130 - workflow - INFO - ============================================================
+2025-12-08 19:11:44,131 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:11:44,131 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:11:44,131 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:11:44,131 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:11:44,131 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:11:44,131 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:11:44,131 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:11:44,131 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:11:44,131 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:11:44,131 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:11:44,131 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:11:44,131 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:11:44,131 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:11:44,131 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:11:44,131 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:11:44,131 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:11:44,131 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:11:44,131 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:11:44,131 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:12:03,266 - agents.artist_agent - ERROR -    ⚠️ 背景去除失败: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:12:03,266 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png
+2025-12-08 19:12:03,266 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:12:03,266 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:12:03,266 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:12:03,266 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:19:59,603 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:19:59,603 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:19:59,603 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:20:00,237 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:20:00,238 - workflow - ERROR - ❌ Agent 初始化失败: 1 validation error for HttpOptions
+api_endpoint
+  Extra inputs are not permitted [type=extra_forbidden, input_value='https://api.vectorengine.ai', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+2025-12-08 19:20:00,238 - root - ERROR - ❌ 程序异常: 1 validation error for HttpOptions
+api_endpoint
+  Extra inputs are not permitted [type=extra_forbidden, input_value='https://api.vectorengine.ai', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+Traceback (most recent call last):
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/ai_galgame.py", line 202, in main
+    create_game_flow(args)
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/ai_galgame.py", line 48, in create_game_flow
+    workflow.initialize_agents(
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/workflow.py", line 58, in initialize_agents
+    self.producer = ProducerAgent(api_key=openai_api_key, base_url=openai_base_url)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/agents/producer_agent.py", line 28, in __init__
+    self.llm_client = LLMClient(api_key=api_key, base_url=base_url)
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/agents/llm_client.py", line 23, in __init__
+    self._initialize_client()
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/agents/llm_client.py", line 56, in _initialize_client
+    self.client = genai.Client(**client_kwargs)
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/deceivemaster/Environment/anaconda3/envs/AI4Game/lib/python3.12/site-packages/google/genai/client.py", line 262, in __init__
+    http_options = HttpOptions(**http_options)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/deceivemaster/Environment/anaconda3/envs/AI4Game/lib/python3.12/site-packages/pydantic/main.py", line 250, in __init__
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+pydantic_core._pydantic_core.ValidationError: 1 validation error for HttpOptions
+api_endpoint
+  Extra inputs are not permitted [type=extra_forbidden, input_value='https://api.vectorengine.ai', input_type=str]
+    For further information visit https://errors.pydantic.dev/2.12/v/extra_forbidden
+2025-12-08 19:21:24,868 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:21:24,869 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:21:24,869 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:21:25,305 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:21:25,377 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:21:25,377 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:21:25,689 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:21:25,690 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:21:25,690 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:21:25,735 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:21:25,736 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:21:25,736 - workflow - INFO - ============================================================
+2025-12-08 19:21:25,736 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:21:25,736 - workflow - INFO - ============================================================
+2025-12-08 19:21:25,736 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:21:25,736 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:21:25,736 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:21:25,736 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:21:25,736 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:21:25,736 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:21:25,780 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:21:25,780 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:21:25,780 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:21:25,824 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:21:25,825 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:21:25,825 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:21:25,868 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:21:25,868 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:21:25,868 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:21:25,868 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:21:25,868 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:21:25,868 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:21:25,868 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:21:25,868 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:21:25,869 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:21:25,902 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:21:25,902 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:21:25,902 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,902 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:21:25,902 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️ 无法加载参考图: cannot identify image file '/Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png'
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 1 张
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️  [neutral] 立绘生成失败
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,903 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:21:25,903 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,903 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 0 张
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [neutral] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:21:25,904 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:21:25,904 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 0 张
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-08 19:21:25,904 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-08 19:21:25,905 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-08 19:21:25,905 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-08 19:21:25,905 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-08 19:21:25,905 - agents.artist_agent - INFO -    🎨 生成背景: 主角卧室...
+2025-12-08 19:21:25,905 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:25,905 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,393 - agents.artist_agent - INFO -    📦 创建占位背景: 主角卧室_afternoon.png
+2025-12-08 19:21:26,393 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-08 19:21:26,393 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-08 19:21:26,393 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-08 19:21:26,393 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,393 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,411 - agents.artist_agent - INFO -    📦 创建占位背景: 2年A班教室_afternoon.png
+2025-12-08 19:21:26,411 - agents.artist_agent - INFO - 
+[3/9] 生成背景: 轻音部活动室
+2025-12-08 19:21:26,411 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 轻音部活动室 (afternoon)
+2025-12-08 19:21:26,411 - agents.artist_agent - INFO -    🎨 生成背景: 轻音部活动室...
+2025-12-08 19:21:26,411 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,411 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,430 - agents.artist_agent - INFO -    📦 创建占位背景: 轻音部活动室_afternoon.png
+2025-12-08 19:21:26,430 - agents.artist_agent - INFO - 
+[4/9] 生成背景: 学校天台
+2025-12-08 19:21:26,430 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学校天台 (afternoon)
+2025-12-08 19:21:26,431 - agents.artist_agent - INFO -    🎨 生成背景: 学校天台...
+2025-12-08 19:21:26,431 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,431 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,448 - agents.artist_agent - INFO -    📦 创建占位背景: 学校天台_afternoon.png
+2025-12-08 19:21:26,448 - agents.artist_agent - INFO - 
+[5/9] 生成背景: 图书馆
+2025-12-08 19:21:26,448 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 图书馆 (afternoon)
+2025-12-08 19:21:26,448 - agents.artist_agent - INFO -    🎨 生成背景: 图书馆...
+2025-12-08 19:21:26,448 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,448 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,465 - agents.artist_agent - INFO -    📦 创建占位背景: 图书馆_afternoon.png
+2025-12-08 19:21:26,465 - agents.artist_agent - INFO - 
+[6/9] 生成背景: 学生会室
+2025-12-08 19:21:26,465 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学生会室 (afternoon)
+2025-12-08 19:21:26,465 - agents.artist_agent - INFO -    🎨 生成背景: 学生会室...
+2025-12-08 19:21:26,465 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,465 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,482 - agents.artist_agent - INFO -    📦 创建占位背景: 学生会室_afternoon.png
+2025-12-08 19:21:26,483 - agents.artist_agent - INFO - 
+[7/9] 生成背景: 海边沙滩
+2025-12-08 19:21:26,483 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 海边沙滩 (afternoon)
+2025-12-08 19:21:26,483 - agents.artist_agent - INFO -    🎨 生成背景: 海边沙滩...
+2025-12-08 19:21:26,483 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,483 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,499 - agents.artist_agent - INFO -    📦 创建占位背景: 海边沙滩_afternoon.png
+2025-12-08 19:21:26,500 - agents.artist_agent - INFO - 
+[8/9] 生成背景: 商店街
+2025-12-08 19:21:26,500 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 商店街 (afternoon)
+2025-12-08 19:21:26,500 - agents.artist_agent - INFO -    🎨 生成背景: 商店街...
+2025-12-08 19:21:26,500 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,500 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,516 - agents.artist_agent - INFO -    📦 创建占位背景: 商店街_afternoon.png
+2025-12-08 19:21:26,516 - agents.artist_agent - INFO - 
+[9/9] 生成背景: 传说之树下
+2025-12-08 19:21:26,516 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 传说之树下 (afternoon)
+2025-12-08 19:21:26,517 - agents.artist_agent - INFO -    🎨 生成背景: 传说之树下...
+2025-12-08 19:21:26,517 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:21:26,517 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:21:26,533 - agents.artist_agent - INFO -    📦 创建占位背景: 传说之树下_afternoon.png
+2025-12-08 19:21:26,533 - agents.artist_agent - INFO - 
+✅ 所有场景背景生成完成！
+2025-12-08 19:21:26,534 - agents.artist_agent - INFO -    成功: 9/9 个场景
+2025-12-08 19:21:26,534 - workflow - INFO - 
+【Step 4/5】开始生成全本剧情 (4组 x 7块)...
+2025-12-08 19:21:26,534 - workflow - INFO - 
+📅 正在制作: 第 1 组 - Block 1
+2025-12-08 19:21:26,534 - agents.writer_agent - INFO - ✍️  开始生成第 1 组 - Block 1 剧情
+2025-12-08 19:21:26,538 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:22:07,373 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:22:07,374 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:22:07,374 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:22:07,817 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:22:07,886 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:22:07,886 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:22:08,200 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:22:08,200 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:22:08,200 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:22:08,245 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:22:08,245 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:22:08,245 - workflow - INFO - ============================================================
+2025-12-08 19:22:08,245 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:22:08,245 - workflow - INFO - ============================================================
+2025-12-08 19:22:08,245 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:22:08,246 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:22:08,246 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:22:08,246 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:22:08,246 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:22:08,246 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:22:08,290 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:22:08,290 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:22:08,290 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:22:08,336 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:22:08,336 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:22:08,336 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:22:08,379 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:22:08,379 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:22:08,379 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [neutral] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:22:08,380 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,380 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:22:08,380 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 0 张
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [neutral] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 0 张
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:22:08,381 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,381 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,381 - agents.artist_agent - WARNING -    ⚠️  [neutral] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,382 - agents.artist_agent - WARNING -    ⚠️  [happy] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,382 - agents.artist_agent - WARNING -    ⚠️  [sad] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,382 - agents.artist_agent - WARNING -    ⚠️  [angry] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,382 - agents.artist_agent - WARNING -    ⚠️  [surprised] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 图像生成失败: module 'google.generativeai' has no attribute 'models'
+2025-12-08 19:22:08,382 - agents.artist_agent - WARNING -    ⚠️  [shy] 立绘生成失败
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 0 张
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    🎨 生成背景: 主角卧室...
+2025-12-08 19:22:08,382 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,382 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,779 - agents.artist_agent - INFO -    📦 创建占位背景: 主角卧室_afternoon.png
+2025-12-08 19:22:08,779 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-08 19:22:08,779 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-08 19:22:08,779 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-08 19:22:08,779 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,779 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,796 - agents.artist_agent - INFO -    📦 创建占位背景: 2年A班教室_afternoon.png
+2025-12-08 19:22:08,796 - agents.artist_agent - INFO - 
+[3/9] 生成背景: 轻音部活动室
+2025-12-08 19:22:08,796 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 轻音部活动室 (afternoon)
+2025-12-08 19:22:08,797 - agents.artist_agent - INFO -    🎨 生成背景: 轻音部活动室...
+2025-12-08 19:22:08,797 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,797 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,814 - agents.artist_agent - INFO -    📦 创建占位背景: 轻音部活动室_afternoon.png
+2025-12-08 19:22:08,814 - agents.artist_agent - INFO - 
+[4/9] 生成背景: 学校天台
+2025-12-08 19:22:08,814 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学校天台 (afternoon)
+2025-12-08 19:22:08,814 - agents.artist_agent - INFO -    🎨 生成背景: 学校天台...
+2025-12-08 19:22:08,814 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,815 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,832 - agents.artist_agent - INFO -    📦 创建占位背景: 学校天台_afternoon.png
+2025-12-08 19:22:08,832 - agents.artist_agent - INFO - 
+[5/9] 生成背景: 图书馆
+2025-12-08 19:22:08,832 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 图书馆 (afternoon)
+2025-12-08 19:22:08,832 - agents.artist_agent - INFO -    🎨 生成背景: 图书馆...
+2025-12-08 19:22:08,832 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,832 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,849 - agents.artist_agent - INFO -    📦 创建占位背景: 图书馆_afternoon.png
+2025-12-08 19:22:08,850 - agents.artist_agent - INFO - 
+[6/9] 生成背景: 学生会室
+2025-12-08 19:22:08,850 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学生会室 (afternoon)
+2025-12-08 19:22:08,850 - agents.artist_agent - INFO -    🎨 生成背景: 学生会室...
+2025-12-08 19:22:08,850 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,850 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,866 - agents.artist_agent - INFO -    📦 创建占位背景: 学生会室_afternoon.png
+2025-12-08 19:22:08,866 - agents.artist_agent - INFO - 
+[7/9] 生成背景: 海边沙滩
+2025-12-08 19:22:08,866 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 海边沙滩 (afternoon)
+2025-12-08 19:22:08,867 - agents.artist_agent - INFO -    🎨 生成背景: 海边沙滩...
+2025-12-08 19:22:08,867 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,867 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,883 - agents.artist_agent - INFO -    📦 创建占位背景: 海边沙滩_afternoon.png
+2025-12-08 19:22:08,883 - agents.artist_agent - INFO - 
+[8/9] 生成背景: 商店街
+2025-12-08 19:22:08,883 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 商店街 (afternoon)
+2025-12-08 19:22:08,883 - agents.artist_agent - INFO -    🎨 生成背景: 商店街...
+2025-12-08 19:22:08,883 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,883 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,900 - agents.artist_agent - INFO -    📦 创建占位背景: 商店街_afternoon.png
+2025-12-08 19:22:08,900 - agents.artist_agent - INFO - 
+[9/9] 生成背景: 传说之树下
+2025-12-08 19:22:08,900 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 传说之树下 (afternoon)
+2025-12-08 19:22:08,900 - agents.artist_agent - INFO -    🎨 生成背景: 传说之树下...
+2025-12-08 19:22:08,900 - agents.artist_agent - ERROR - ❌ 背景图生成失败: module 'google.generativeai' has no attribute 'images'
+2025-12-08 19:22:08,900 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:22:08,916 - agents.artist_agent - INFO -    📦 创建占位背景: 传说之树下_afternoon.png
+2025-12-08 19:22:08,917 - agents.artist_agent - INFO - 
+✅ 所有场景背景生成完成！
+2025-12-08 19:22:08,917 - agents.artist_agent - INFO -    成功: 9/9 个场景
+2025-12-08 19:22:08,917 - workflow - INFO - 
+【Step 4/5】开始生成全本剧情 (4组 x 7块)...
+2025-12-08 19:22:08,917 - workflow - INFO - 
+📅 正在制作: 第 1 组 - Block 1
+2025-12-08 19:22:08,917 - agents.writer_agent - INFO - ✍️  开始生成第 1 组 - Block 1 剧情
+2025-12-08 19:22:08,922 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:23:07,142 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:23:07,142 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:23:07,142 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:23:07,595 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:23:07,664 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:23:07,664 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:23:07,708 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:23:07,708 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:23:07,708 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:23:07,751 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:23:07,751 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:23:07,751 - workflow - INFO - ============================================================
+2025-12-08 19:23:07,751 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:23:07,751 - workflow - INFO - ============================================================
+2025-12-08 19:23:07,751 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:23:07,752 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:23:07,753 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:23:07,753 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:23:07,753 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:23:07,753 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:23:07,797 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:23:07,797 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:23:07,797 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:23:07,841 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:23:07,841 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:23:07,841 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:23:07,885 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:23:07,885 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:23:07,885 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:23:07,885 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:23:07,885 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:23:07,885 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:23:07,885 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:23:07,885 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:23:25,500 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:23:27,564 - agents.artist_agent - INFO -    ✂️  已去除背景: neutral.png
+2025-12-08 19:23:27,575 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png
+2025-12-08 19:23:27,575 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:23:27,575 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:23:27,575 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:23:27,576 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:23:49,769 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:23:50,315 - agents.artist_agent - INFO -    ✂️  已去除背景: happy.png
+2025-12-08 19:23:50,326 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/happy.png
+2025-12-08 19:23:50,327 - agents.artist_agent - INFO -    ✅ [happy] 立绘生成成功
+2025-12-08 19:23:50,327 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:23:50,327 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:23:50,327 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:26:38,178 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:26:38,178 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:26:38,178 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:26:38,617 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:26:38,687 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:26:38,687 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:26:38,731 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:26:38,731 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:26:38,731 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:26:38,774 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:26:38,774 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:26:38,775 - workflow - INFO - ============================================================
+2025-12-08 19:26:38,775 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:26:38,775 - workflow - INFO - ============================================================
+2025-12-08 19:26:38,775 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:26:38,776 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:26:38,776 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:26:38,776 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:26:38,776 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:26:38,776 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:26:38,819 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:26:38,820 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:26:38,820 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:26:38,863 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:26:38,863 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:26:38,863 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:26:38,906 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:26:38,906 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:26:38,907 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:26:38,907 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:26:38,907 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:26:38,907 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:26:38,907 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:26:38,907 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:26:55,896 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:26:57,848 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/neutral.png
+2025-12-08 19:26:57,848 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:26:57,849 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:26:57,849 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:26:57,858 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:27:19,588 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:27:19,935 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/happy.png
+2025-12-08 19:27:19,935 - agents.artist_agent - INFO -    ✅ [happy] 立绘生成成功
+2025-12-08 19:27:19,936 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:27:19,936 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:27:19,936 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:27:37,916 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:27:38,030 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/sad.png
+2025-12-08 19:27:38,030 - agents.artist_agent - INFO -    ✅ [sad] 立绘生成成功
+2025-12-08 19:27:38,030 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:27:38,030 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:27:38,030 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:27:56,451 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:27:56,665 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/angry.png
+2025-12-08 19:27:56,666 - agents.artist_agent - INFO -    ✅ [angry] 立绘生成成功
+2025-12-08 19:27:56,666 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:27:56,666 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:27:56,666 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:28:14,268 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:28:14,397 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/surprised.png
+2025-12-08 19:28:14,397 - agents.artist_agent - INFO -    ✅ [surprised] 立绘生成成功
+2025-12-08 19:28:14,397 - agents.artist_agent - INFO -    🎨 为 [星野雪乃] 生成立绘...
+2025-12-08 19:28:14,397 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:28:14,397 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:28:36,566 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:28:36,770 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/yukino/shy.png
+2025-12-08 19:28:36,774 - agents.artist_agent - INFO -    ✅ [shy] 立绘生成成功
+2025-12-08 19:28:36,775 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:28:36,775 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:28:36,775 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:28:36,775 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:28:36,775 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:28:55,537 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:28:55,589 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/neutral.png
+2025-12-08 19:28:55,589 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:28:55,589 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:28:55,589 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:28:55,590 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:29:14,640 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:29:17,077 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/happy.png
+2025-12-08 19:29:17,078 - agents.artist_agent - INFO -    ✅ [happy] 立绘生成成功
+2025-12-08 19:29:17,078 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:29:17,078 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:29:17,078 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:29:35,459 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:29:35,807 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/sad.png
+2025-12-08 19:29:35,808 - agents.artist_agent - INFO -    ✅ [sad] 立绘生成成功
+2025-12-08 19:29:35,808 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:29:35,808 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:29:35,808 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:29:50,171 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:29:50,171 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:29:50,172 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:29:50,623 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:29:50,695 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:29:50,696 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:29:50,739 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:29:50,739 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:29:50,739 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:29:50,783 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:29:50,783 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:29:50,783 - workflow - INFO - ============================================================
+2025-12-08 19:29:50,783 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:29:50,783 - workflow - INFO - ============================================================
+2025-12-08 19:29:50,783 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:29:50,784 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:29:50,784 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:29:50,784 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:29:50,784 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:29:50,784 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:29:50,828 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:29:50,828 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:29:50,828 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:29:50,873 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:29:50,873 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:29:50,873 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:29:50,917 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:29:50,918 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:29:50,918 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:29:50,918 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:29:50,928 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:30:07,125 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:30:07,125 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:30:07,125 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:30:07,549 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:07,617 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:30:07,617 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:30:07,661 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:30:07,661 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:30:07,661 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:07,704 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:30:07,704 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:30:07,704 - workflow - INFO - ============================================================
+2025-12-08 19:30:07,704 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:30:07,704 - workflow - INFO - ============================================================
+2025-12-08 19:30:07,704 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:30:07,705 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:30:07,705 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:30:07,705 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:30:07,705 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:30:07,705 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:07,749 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:30:07,749 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:30:07,749 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:07,793 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:30:07,793 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:30:07,793 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:07,838 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:30:07,838 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:30:07,838 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:30:07,838 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:30:07,839 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:30:07,839 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:30:07,839 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:30:07,839 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:30:07,839 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:30:29,253 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:30:30,913 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/neutral.png
+2025-12-08 19:30:30,913 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:30:30,914 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:30:30,914 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:30:30,923 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:30:44,565 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:30:44,565 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:30:44,565 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:30:44,996 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:45,064 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:30:45,064 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:30:45,108 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:30:45,108 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:30:45,108 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:45,152 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:30:45,152 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:30:45,152 - workflow - INFO - ============================================================
+2025-12-08 19:30:45,152 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:30:45,152 - workflow - INFO - ============================================================
+2025-12-08 19:30:45,152 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:30:45,152 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:30:45,152 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:30:45,152 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:30:45,152 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:30:45,153 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:45,195 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:30:45,196 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:30:45,196 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:45,238 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:30:45,239 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:30:45,239 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:30:45,282 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:30:45,282 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:30:45,282 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:30:45,282 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:30:45,283 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:31:03,654 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:31:05,656 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/neutral.png
+2025-12-08 19:31:05,656 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:31:05,656 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:31:05,657 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:31:05,666 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:31:23,720 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:31:24,073 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/happy.png
+2025-12-08 19:31:24,073 - agents.artist_agent - INFO -    ✅ [happy] 立绘生成成功
+2025-12-08 19:31:24,073 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:31:24,073 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:31:24,073 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:31:43,165 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:31:43,317 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/sad.png
+2025-12-08 19:31:43,319 - agents.artist_agent - INFO -    ✅ [sad] 立绘生成成功
+2025-12-08 19:31:43,319 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:31:43,319 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:31:43,319 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:32:01,099 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:32:01,455 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/angry.png
+2025-12-08 19:32:01,456 - agents.artist_agent - INFO -    ✅ [angry] 立绘生成成功
+2025-12-08 19:32:01,456 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:32:01,456 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:32:01,457 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:32:21,220 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:32:21,413 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/surprised.png
+2025-12-08 19:32:21,414 - agents.artist_agent - INFO -    ✅ [surprised] 立绘生成成功
+2025-12-08 19:32:21,414 - agents.artist_agent - INFO -    🎨 为 [月岛诗织] 生成立绘...
+2025-12-08 19:32:21,414 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:32:21,415 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:32:37,131 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:32:37,507 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/shiori/shy.png
+2025-12-08 19:32:37,508 - agents.artist_agent - INFO -    ✅ [shy] 立绘生成成功
+2025-12-08 19:32:37,509 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 6 张
+2025-12-08 19:32:37,509 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-08 19:32:37,509 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:32:37,509 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:32:37,509 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:33:07,031 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:33:07,207 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/neutral.png
+2025-12-08 19:33:07,208 - agents.artist_agent - INFO -    ✅ [neutral] 立绘生成成功
+2025-12-08 19:33:07,208 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:33:07,208 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:33:07,208 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:33:24,193 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:33:24,400 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/happy.png
+2025-12-08 19:33:24,400 - agents.artist_agent - INFO -    ✅ [happy] 立绘生成成功
+2025-12-08 19:33:24,400 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:33:24,400 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:33:24,400 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:33:39,489 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:33:39,661 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/sad.png
+2025-12-08 19:33:39,662 - agents.artist_agent - INFO -    ✅ [sad] 立绘生成成功
+2025-12-08 19:33:39,662 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:33:39,662 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:33:39,662 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:33:56,472 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:33:56,676 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/angry.png
+2025-12-08 19:33:56,676 - agents.artist_agent - INFO -    ✅ [angry] 立绘生成成功
+2025-12-08 19:33:56,676 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:33:56,676 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:33:56,677 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:34:17,286 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:34:19,180 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/surprised.png
+2025-12-08 19:34:19,181 - agents.artist_agent - INFO -    ✅ [surprised] 立绘生成成功
+2025-12-08 19:34:19,181 - agents.artist_agent - INFO -    🎨 为 [西园寺华恋] 生成立绘...
+2025-12-08 19:34:19,181 - agents.artist_agent - INFO -    📎 使用参考图: neutral.png
+2025-12-08 19:34:19,181 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:34:38,676 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:34:39,104 - agents.artist_agent - INFO -    ✅ 图像保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/characters/karen/shy.png
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO -    ✅ [shy] 立绘生成成功
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 6 张
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-08 19:34:39,105 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-08 19:34:39,106 - agents.artist_agent - INFO -    🎨 生成背景: 主角卧室...
+2025-12-08 19:34:39,106 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,106 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,535 - agents.artist_agent - INFO -    📦 创建占位背景: 主角卧室_afternoon.png
+2025-12-08 19:34:39,535 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-08 19:34:39,535 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-08 19:34:39,535 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-08 19:34:39,536 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,536 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,552 - agents.artist_agent - INFO -    📦 创建占位背景: 2年A班教室_afternoon.png
+2025-12-08 19:34:39,553 - agents.artist_agent - INFO - 
+[3/9] 生成背景: 轻音部活动室
+2025-12-08 19:34:39,553 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 轻音部活动室 (afternoon)
+2025-12-08 19:34:39,553 - agents.artist_agent - INFO -    🎨 生成背景: 轻音部活动室...
+2025-12-08 19:34:39,553 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,553 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,570 - agents.artist_agent - INFO -    📦 创建占位背景: 轻音部活动室_afternoon.png
+2025-12-08 19:34:39,570 - agents.artist_agent - INFO - 
+[4/9] 生成背景: 学校天台
+2025-12-08 19:34:39,570 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学校天台 (afternoon)
+2025-12-08 19:34:39,570 - agents.artist_agent - INFO -    🎨 生成背景: 学校天台...
+2025-12-08 19:34:39,570 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,570 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,587 - agents.artist_agent - INFO -    📦 创建占位背景: 学校天台_afternoon.png
+2025-12-08 19:34:39,587 - agents.artist_agent - INFO - 
+[5/9] 生成背景: 图书馆
+2025-12-08 19:34:39,587 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 图书馆 (afternoon)
+2025-12-08 19:34:39,587 - agents.artist_agent - INFO -    🎨 生成背景: 图书馆...
+2025-12-08 19:34:39,587 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,587 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,604 - agents.artist_agent - INFO -    📦 创建占位背景: 图书馆_afternoon.png
+2025-12-08 19:34:39,604 - agents.artist_agent - INFO - 
+[6/9] 生成背景: 学生会室
+2025-12-08 19:34:39,604 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学生会室 (afternoon)
+2025-12-08 19:34:39,604 - agents.artist_agent - INFO -    🎨 生成背景: 学生会室...
+2025-12-08 19:34:39,604 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,605 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,622 - agents.artist_agent - INFO -    📦 创建占位背景: 学生会室_afternoon.png
+2025-12-08 19:34:39,622 - agents.artist_agent - INFO - 
+[7/9] 生成背景: 海边沙滩
+2025-12-08 19:34:39,622 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 海边沙滩 (afternoon)
+2025-12-08 19:34:39,622 - agents.artist_agent - INFO -    🎨 生成背景: 海边沙滩...
+2025-12-08 19:34:39,623 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,623 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,639 - agents.artist_agent - INFO -    📦 创建占位背景: 海边沙滩_afternoon.png
+2025-12-08 19:34:39,639 - agents.artist_agent - INFO - 
+[8/9] 生成背景: 商店街
+2025-12-08 19:34:39,640 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 商店街 (afternoon)
+2025-12-08 19:34:39,640 - agents.artist_agent - INFO -    🎨 生成背景: 商店街...
+2025-12-08 19:34:39,640 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,640 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,656 - agents.artist_agent - INFO -    📦 创建占位背景: 商店街_afternoon.png
+2025-12-08 19:34:39,656 - agents.artist_agent - INFO - 
+[9/9] 生成背景: 传说之树下
+2025-12-08 19:34:39,657 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 传说之树下 (afternoon)
+2025-12-08 19:34:39,657 - agents.artist_agent - INFO -    🎨 生成背景: 传说之树下...
+2025-12-08 19:34:39,657 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:39,657 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:39,673 - agents.artist_agent - INFO -    📦 创建占位背景: 传说之树下_afternoon.png
+2025-12-08 19:34:39,674 - agents.artist_agent - INFO - 
+✅ 所有场景背景生成完成！
+2025-12-08 19:34:39,674 - agents.artist_agent - INFO -    成功: 9/9 个场景
+2025-12-08 19:34:39,674 - workflow - INFO - 
+【Step 4/5】开始生成全本剧情 (4组 x 7块)...
+2025-12-08 19:34:39,674 - workflow - INFO - 
+📅 正在制作: 第 1 组 - Block 1
+2025-12-08 19:34:39,674 - agents.writer_agent - INFO - ✍️  开始生成第 1 组 - Block 1 剧情
+2025-12-08 19:34:39,679 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:34:51,874 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:34:51,874 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:34:51,874 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:34:52,346 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:34:52,415 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:34:52,415 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:34:52,463 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:34:52,463 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:34:52,463 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:34:52,508 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:34:52,508 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:34:52,508 - workflow - INFO - ============================================================
+2025-12-08 19:34:52,508 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:34:52,508 - workflow - INFO - ============================================================
+2025-12-08 19:34:52,508 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:34:52,508 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:34:52,508 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:34:52,508 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:34:52,508 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:34:52,508 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:34:52,553 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:34:52,553 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:34:52,553 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:34:52,598 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:34:52,598 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:34:52,598 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:34:52,643 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:34:52,643 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:34:52,643 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,643 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:34:52,644 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 6 张
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 6 张
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    🎨 生成背景: 主角卧室...
+2025-12-08 19:34:52,645 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:52,645 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,014 - agents.artist_agent - INFO -    📦 创建占位背景: 主角卧室_afternoon.png
+2025-12-08 19:34:53,014 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-08 19:34:53,014 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-08 19:34:53,014 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-08 19:34:53,014 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,014 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,034 - agents.artist_agent - INFO -    📦 创建占位背景: 2年A班教室_afternoon.png
+2025-12-08 19:34:53,034 - agents.artist_agent - INFO - 
+[3/9] 生成背景: 轻音部活动室
+2025-12-08 19:34:53,034 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 轻音部活动室 (afternoon)
+2025-12-08 19:34:53,034 - agents.artist_agent - INFO -    🎨 生成背景: 轻音部活动室...
+2025-12-08 19:34:53,034 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,034 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,052 - agents.artist_agent - INFO -    📦 创建占位背景: 轻音部活动室_afternoon.png
+2025-12-08 19:34:53,052 - agents.artist_agent - INFO - 
+[4/9] 生成背景: 学校天台
+2025-12-08 19:34:53,052 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学校天台 (afternoon)
+2025-12-08 19:34:53,052 - agents.artist_agent - INFO -    🎨 生成背景: 学校天台...
+2025-12-08 19:34:53,052 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,052 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,069 - agents.artist_agent - INFO -    📦 创建占位背景: 学校天台_afternoon.png
+2025-12-08 19:34:53,069 - agents.artist_agent - INFO - 
+[5/9] 生成背景: 图书馆
+2025-12-08 19:34:53,069 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 图书馆 (afternoon)
+2025-12-08 19:34:53,069 - agents.artist_agent - INFO -    🎨 生成背景: 图书馆...
+2025-12-08 19:34:53,069 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,069 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,086 - agents.artist_agent - INFO -    📦 创建占位背景: 图书馆_afternoon.png
+2025-12-08 19:34:53,087 - agents.artist_agent - INFO - 
+[6/9] 生成背景: 学生会室
+2025-12-08 19:34:53,087 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 学生会室 (afternoon)
+2025-12-08 19:34:53,087 - agents.artist_agent - INFO -    🎨 生成背景: 学生会室...
+2025-12-08 19:34:53,087 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,087 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,104 - agents.artist_agent - INFO -    📦 创建占位背景: 学生会室_afternoon.png
+2025-12-08 19:34:53,104 - agents.artist_agent - INFO - 
+[7/9] 生成背景: 海边沙滩
+2025-12-08 19:34:53,104 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 海边沙滩 (afternoon)
+2025-12-08 19:34:53,104 - agents.artist_agent - INFO -    🎨 生成背景: 海边沙滩...
+2025-12-08 19:34:53,105 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,105 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,122 - agents.artist_agent - INFO -    📦 创建占位背景: 海边沙滩_afternoon.png
+2025-12-08 19:34:53,122 - agents.artist_agent - INFO - 
+[8/9] 生成背景: 商店街
+2025-12-08 19:34:53,122 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 商店街 (afternoon)
+2025-12-08 19:34:53,122 - agents.artist_agent - INFO -    🎨 生成背景: 商店街...
+2025-12-08 19:34:53,122 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,122 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,139 - agents.artist_agent - INFO -    📦 创建占位背景: 商店街_afternoon.png
+2025-12-08 19:34:53,139 - agents.artist_agent - INFO - 
+[9/9] 生成背景: 传说之树下
+2025-12-08 19:34:53,140 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 传说之树下 (afternoon)
+2025-12-08 19:34:53,140 - agents.artist_agent - INFO -    🎨 生成背景: 传说之树下...
+2025-12-08 19:34:53,140 - agents.artist_agent - ERROR - ❌ 背景图生成失败: 'Client' object has no attribute 'images'
+2025-12-08 19:34:53,140 - agents.artist_agent - INFO -    📦 回退到占位背景
+2025-12-08 19:34:53,156 - agents.artist_agent - INFO -    📦 创建占位背景: 传说之树下_afternoon.png
+2025-12-08 19:34:53,157 - agents.artist_agent - INFO - 
+✅ 所有场景背景生成完成！
+2025-12-08 19:34:53,157 - agents.artist_agent - INFO -    成功: 9/9 个场景
+2025-12-08 19:34:53,157 - workflow - INFO - 
+【Step 4/5】开始生成全本剧情 (4组 x 7块)...
+2025-12-08 19:34:53,157 - workflow - INFO - 
+📅 正在制作: 第 1 组 - Block 1
+2025-12-08 19:34:53,157 - agents.writer_agent - INFO - ✍️  开始生成第 1 组 - Block 1 剧情
+2025-12-08 19:34:53,162 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:38:47,550 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-08 19:38:47,550 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-08 19:38:47,550 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-08 19:38:47,994 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:38:48,064 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-08 19:38:48,064 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-08 19:38:48,108 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-08 19:38:48,108 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-08 19:38:48,108 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:38:48,151 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-08 19:38:48,151 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-08 19:38:48,151 - workflow - INFO - ============================================================
+2025-12-08 19:38:48,151 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-08 19:38:48,151 - workflow - INFO - ============================================================
+2025-12-08 19:38:48,151 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-08 19:38:48,152 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:38:48,152 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-08 19:38:48,152 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-08 19:38:48,153 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-08 19:38:48,153 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:38:48,197 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-08 19:38:48,197 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-08 19:38:48,197 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:38:48,241 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-08 19:38:48,241 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-08 19:38:48,241 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-08 19:38:48,284 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-08 19:38:48,284 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-08 19:38:48,284 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:38:48,284 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 6 张
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-08 19:38:48,285 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 6 张
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-08 19:38:48,286 - agents.artist_agent - INFO -    🎨 生成背景: 主角卧室...
+2025-12-08 19:38:48,286 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-08 19:39:06,454 - httpx - INFO - HTTP Request: POST https://api.vectorengine.ai/v1beta/models/gemini-3-pro-image-preview:generateContent "HTTP/1.1 200 OK"
+2025-12-08 19:39:08,444 - agents.artist_agent - INFO -    ✅ 背景图保存成功: /Users/deceivemaster/Code/AI4Game/pygame_galgame/data/images/backgrounds/主角卧室_afternoon.png
+2025-12-08 19:39:08,445 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-08 19:39:08,445 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-08 19:39:08,445 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-08 19:39:08,445 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
+2025-12-18 12:50:44,193 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-18 12:50:44,194 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-18 12:50:44,194 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-18 12:50:44,799 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 12:50:44,877 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-18 12:50:44,877 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-18 12:50:44,921 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-18 12:50:44,921 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-18 12:50:44,921 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 12:50:44,965 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-18 12:50:44,965 - workflow - INFO -    🎙️ 初始化配音 Agent...
+2025-12-18 12:50:44,965 - workflow - ERROR - ❌ Agent 初始化失败: type object 'PathConfig' has no attribute 'VOICE_DIR'
+2025-12-18 12:50:44,965 - root - ERROR - ❌ 程序异常: type object 'PathConfig' has no attribute 'VOICE_DIR'
+Traceback (most recent call last):
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/ai_galgame.py", line 202, in main
+    create_game_flow(args)
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/ai_galgame.py", line 48, in create_game_flow
+    workflow.initialize_agents(
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/workflow.py", line 74, in initialize_agents
+    self.voice_agent = VoiceAgent()
+                       ^^^^^^^^^^^^
+  File "/Users/deceivemaster/Code/AI4Game/pygame_galgame/agents/voice_agent.py", line 30, in __init__
+    self.output_dir = PathConfig.VOICE_DIR
+                      ^^^^^^^^^^^^^^^^^^^^
+AttributeError: type object 'PathConfig' has no attribute 'VOICE_DIR'
