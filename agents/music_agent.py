@@ -26,7 +26,7 @@ class MusicAgent:
         self.base_url = base_url or APIConfig.MUSIC_BASE_URL
         
         # 确保输出目录存在
-        self.output_dir = PathConfig.AUDIO_DIR / "bgm"
+        self.output_dir = Path(PathConfig.BGM_DIR)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         
         logger.info("🎵 音乐 Agent 初始化完成")

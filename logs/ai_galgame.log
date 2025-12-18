@@ -1130,3 +1130,106 @@ Traceback (most recent call last):
     self.output_dir = PathConfig.VOICE_DIR
                       ^^^^^^^^^^^^^^^^^^^^
 AttributeError: type object 'PathConfig' has no attribute 'VOICE_DIR'
+2025-12-18 13:54:10,051 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-18 13:54:10,052 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-18 13:54:10,052 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-18 13:54:10,565 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:54:10,638 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-18 13:54:10,638 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-18 13:54:10,682 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-18 13:54:10,682 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-18 13:54:10,682 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:54:10,727 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-18 13:54:10,727 - workflow - INFO -    🎵 初始化音乐 Agent...
+2025-12-18 13:54:10,727 - workflow - ERROR - ❌ Agent 初始化失败: unsupported operand type(s) for /: 'str' and 'str'
+2025-12-18 13:54:10,727 - root - ERROR - ❌ 程序异常: unsupported operand type(s) for /: 'str' and 'str'
+Traceback (most recent call last):
+  File "/Users/deceivemaster/Code/AI4Game/AI4VisualNovel/ai_galgame.py", line 202, in main
+    create_game_flow(args)
+  File "/Users/deceivemaster/Code/AI4Game/AI4VisualNovel/ai_galgame.py", line 48, in create_game_flow
+    workflow.initialize_agents(
+  File "/Users/deceivemaster/Code/AI4Game/AI4VisualNovel/workflow.py", line 73, in initialize_agents
+    self.music_agent = MusicAgent()
+                       ^^^^^^^^^^^^
+  File "/Users/deceivemaster/Code/AI4Game/AI4VisualNovel/agents/music_agent.py", line 29, in __init__
+    self.output_dir = PathConfig.AUDIO_DIR / "bgm"
+                      ~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+TypeError: unsupported operand type(s) for /: 'str' and 'str'
+2025-12-18 13:55:48,265 - workflow - INFO - 🎮 工作流控制器初始化
+2025-12-18 13:55:48,265 - workflow - INFO - 🚀 初始化 Agent 系统...
+2025-12-18 13:55:48,265 - workflow - INFO -    📋 初始化制作人 Agent...
+2025-12-18 13:55:48,712 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:55:48,787 - agents.producer_agent - INFO - ✅ 制作人 Agent 初始化成功
+2025-12-18 13:55:48,787 - workflow - INFO -    🎨 初始化美术 Agent (DALL-E)...
+2025-12-18 13:55:48,832 - agents.artist_agent - INFO - ✅ 美术 Agent 初始化成功 (Google Imagen)
+2025-12-18 13:55:48,832 - workflow - INFO -    ✍️  初始化编剧 Agent...
+2025-12-18 13:55:48,833 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:55:48,877 - agents.writer_agent - INFO - ✅ 编剧 Agent 初始化成功
+2025-12-18 13:55:48,877 - workflow - INFO -    🎵 初始化音乐 Agent...
+2025-12-18 13:55:48,877 - agents.music_agent - INFO - 🎵 音乐 Agent 初始化完成
+2025-12-18 13:55:48,877 - workflow - INFO - ✅ 基础 Agent 初始化完成！
+2025-12-18 13:55:48,877 - workflow - INFO - ============================================================
+2025-12-18 13:55:48,877 - workflow - INFO - 🎬 开始创建新游戏 (每日迭代模式)
+2025-12-18 13:55:48,877 - workflow - INFO - ============================================================
+2025-12-18 13:55:48,877 - workflow - INFO - 
+【Step 1/5】检查游戏设计文档...
+2025-12-18 13:55:48,878 - agents.producer_agent - INFO - 📖 游戏设计文档已加载: 《樱色气泡：未完的夏日乐章》
+2025-12-18 13:55:48,878 - workflow - INFO - ✅ 检测到已存在的游戏设计: 《樱色气泡：未完的夏日乐章》
+2025-12-18 13:55:48,878 - workflow - INFO - 
+【Step 2/5】初始化演员阵容...
+2025-12-18 13:55:48,878 - workflow - INFO - 🎭 初始化演员 Agent...
+2025-12-18 13:55:48,878 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:55:48,925 - agents.actor_agent - INFO - ✅ 演员 Agent (星野雪乃) 初始化成功
+2025-12-18 13:55:48,925 - workflow - INFO -    ✅ 演员就位: 星野雪乃
+2025-12-18 13:55:48,925 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:55:48,970 - agents.actor_agent - INFO - ✅ 演员 Agent (月岛诗织) 初始化成功
+2025-12-18 13:55:48,970 - workflow - INFO -    ✅ 演员就位: 月岛诗织
+2025-12-18 13:55:48,970 - agents.llm_client - INFO - ✅ Google Client 初始化 (Endpoint: https://api.vectorengine.ai)
+2025-12-18 13:55:49,015 - agents.actor_agent - INFO - ✅ 演员 Agent (西园寺华恋) 初始化成功
+2025-12-18 13:55:49,015 - workflow - INFO -    ✅ 演员就位: 西园寺华恋
+2025-12-18 13:55:49,015 - workflow - INFO - 
+【Step 3/4】生成美术资源...
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO - 🎨 开始为 3 个角色生成立绘
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO - 
+[1/3] 处理角色: 星野雪乃
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO - 🎨 为角色 [星野雪乃] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-18 13:55:49,015 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,016 - agents.artist_agent - INFO - ✅ 角色 [星野雪乃] 立绘生成完成，共 6 张
+2025-12-18 13:55:49,016 - agents.artist_agent - INFO - 
+[2/3] 处理角色: 月岛诗织
+2025-12-18 13:55:49,016 - agents.artist_agent - INFO - 🎨 为角色 [月岛诗织] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-18 13:55:49,016 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO - ✅ 角色 [月岛诗织] 立绘生成完成，共 6 张
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO - 
+[3/3] 处理角色: 西园寺华恋
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO - 🎨 为角色 [西园寺华恋] 生成立绘，表情: ['neutral', 'happy', 'sad', 'angry', 'surprised', 'shy']
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [neutral] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [happy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [sad] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [angry] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [surprised] 立绘已存在，跳过生成
+2025-12-18 13:55:49,017 - agents.artist_agent - INFO -    ✅ [shy] 立绘已存在，跳过生成
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - ✅ 角色 [西园寺华恋] 立绘生成完成，共 6 张
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 
+✅ 所有角色立绘生成完成！
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO -    成功: 3/3 个角色
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 🖼️  开始为 9 个场景生成背景图
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 
+[1/9] 生成背景: 主角卧室
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 主角卧室 (afternoon)
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO -    ✅ 背景图已存在，跳过生成: /Users/deceivemaster/Code/AI4Game/AI4VisualNovel/data/images/backgrounds/主角卧室_afternoon.png
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 
+[2/9] 生成背景: 2年A班教室
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO - 🖼️  开始生成场景背景: 2年A班教室 (afternoon)
+2025-12-18 13:55:49,018 - agents.artist_agent - INFO -    🎨 生成背景: 2年A班教室...
+2025-12-18 13:55:49,018 - google_genai.models - INFO - AFC is enabled with max remote calls: 10.
