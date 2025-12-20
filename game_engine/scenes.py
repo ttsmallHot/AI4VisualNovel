@@ -35,6 +35,32 @@ class TitleScene(Scene):
         # 显示游戏标题
         self.game_title = manager.game_state.game_design.get('title', '我的 Galgame') if manager.game_state else '我的 Galgame'
 
+        # 加载标题背景图
+        self.title_bg = None
+        try:
+            title_bg_path = DataPaths.DATA_DIR / "images" / "title_screen.png"
+            if title_bg_path.exists():
+                raw_bg = pygame.image.load(str(title_bg_path)).convert()
+                
+                # 自适应缩放 (Aspect Fill) - 保持比例填满屏幕
+                img_w, img_h = raw_bg.get_size()
+                scale_w = SCREEN_WIDTH / img_w
+                scale_h = SCREEN_HEIGHT / img_h
+                scale = max(scale_w, scale_h) # 取最大比例以填满屏幕
+                
+                new_w = int(img_w * scale)
+                new_h = int(img_h * scale)
+                
+                # 使用平滑缩放
+                scaled_bg = pygame.transform.smoothscale(raw_bg, (new_w, new_h))
+                
+                # 居中裁剪
+                x = (new_w - SCREEN_WIDTH) // 2
+                y = (new_h - SCREEN_HEIGHT) // 2
+                self.title_bg = scaled_bg.subsurface((x, y, SCREEN_WIDTH, SCREEN_HEIGHT))
+        except Exception as e:
+            print(f"无法加载标题背景: {e}")
+
     def start_game(self):
         # 开始第一周第一天的剧情
         self.manager.start_story()
@@ -49,18 +75,28 @@ class TitleScene(Scene):
         self.time_offset += 0.05
 
     def draw(self, screen):
-        screen.fill(Colors.BG_MORNING)
-        
-        # 云朵动画
-        for i in range(5):
-            x = (i * 200 + self.time_offset * 10) % (SCREEN_WIDTH + 200) - 100
-            y = 100 + math.sin(self.time_offset + i) * 20
-            pygame.draw.ellipse(screen, (255, 255, 255, 150), (x, y, 120, 60))
+        if self.title_bg:
+            screen.blit(self.title_bg, (0, 0))
+        else:
+            screen.fill(Colors.BG_MORNING)
+            
+            # 云朵动画
+            for i in range(5):
+                x = (i * 200 + self.time_offset * 10) % (SCREEN_WIDTH + 200) - 100
+                y = 100 + math.sin(self.time_offset + i) * 20
+                pygame.draw.ellipse(screen, (255, 255, 255, 150), (x, y, 120, 60))
 
-        # 标题
+        # 标题 (始终显示)
+        # 增强阴影以确保在复杂背景上可见
         title = self.font_large.render(self.game_title, True, Colors.WHITE)
-        shadow = self.font_large.render(self.game_title, True, (0,0,0,50))
-        screen.blit(shadow, shadow.get_rect(center=(SCREEN_WIDTH//2 + 4, 250 + 4)))
+        shadow = self.font_large.render(self.game_title, True, (0,0,0,180)) # 加深阴影
+        
+        # 绘制多次阴影以模拟描边效果
+        screen.blit(shadow, shadow.get_rect(center=(SCREEN_WIDTH//2 + 2, 250 + 2)))
+        screen.blit(shadow, shadow.get_rect(center=(SCREEN_WIDTH//2 - 2, 250 + 2)))
+        screen.blit(shadow, shadow.get_rect(center=(SCREEN_WIDTH//2 + 2, 250 - 2)))
+        screen.blit(shadow, shadow.get_rect(center=(SCREEN_WIDTH//2 - 2, 250 - 2)))
+        
         screen.blit(title, title.get_rect(center=(SCREEN_WIDTH//2, 250)))
         
         self.start_btn.draw(screen, self.font_small)
@@ -227,8 +263,8 @@ class DialogueScene(Scene):
 
         # --- 常规指令 ---
         
-        # 处理背景
-        if line_type == "background":
+        # 处理背景/场景
+        if line_type == "background" or line_type == "scene":
             bg_name = line.get("value", "").strip()
             self.current_bg_name = bg_name # 记录状态
             bg_image = self.load_background_image(bg_name)
@@ -251,11 +287,20 @@ class DialogueScene(Scene):
             if not image_value or image_value == "无":
                 self.current_character_image = None
             else:
-                # 直接使用角色名加载图像（统一使用 neutral 表情）
-                char_id = self._get_character_id(image_value)
+                # 解析角色名和表情 (例如: 夏海千寻-shy)
+                if '-' in image_value:
+                    char_name_part, emotion_part = image_value.split('-', 1)
+                    char_name_part = char_name_part.strip()
+                    emotion_part = emotion_part.strip()
+                else:
+                    char_name_part = image_value
+                    emotion_part = "neutral"
+
+                # 加载图像
+                char_id = self._get_character_id(char_name_part)
                 if char_id:
-                    self.current_character_image = self.load_character_image(char_id, "neutral")
-                    print(f"📸 加载角色立绘: {image_value} (ID: {char_id})")
+                    self.current_character_image = self.load_character_image(char_id, emotion_part)
+                    print(f"📸 加载角色立绘: {char_name_part} (ID: {char_id}, Emotion: {emotion_part})")
                 else:
                     print(f"⚠️ 未找到角色: {image_value}")
                     self.current_character_image = None
@@ -268,7 +313,8 @@ class DialogueScene(Scene):
         elif line_type == "narrator":
             self.current_speaker = None
             self.full_text = line.get("text", "")
-            self.current_character_image = None
+            # 旁白不应该清除立绘，除非显式指定 [IMAGE: 无]
+            # self.current_character_image = None 
         
         # 处理对话
         elif line_type == "dialogue":
@@ -292,6 +338,15 @@ class DialogueScene(Scene):
             
             self.full_text = line.get("text", "")
         
+        # 处理跳转
+        elif line_type == "jump":
+            target_node = line.get("target")
+            print(f"🦘 跳转到节点: {target_node}")
+            self.manager.game_state.current_node_id = target_node
+            self.manager.game_state.scene_index = 0 # 重置场景索引
+            self.manager.play_current_scene() # 立即播放新节点
+            return
+
         # 处理选择支
         elif line_type == "choice_start":
             self.in_choice = True
@@ -300,12 +355,26 @@ class DialogueScene(Scene):
             temp_index = self.index + 1
             while temp_index < len(self.script_lines):
                 next_line = self.script_lines[temp_index]
+                # 跳过空行或无效行
+                if not next_line:
+                    temp_index += 1
+                    continue
+                    
                 if next_line.get("type") == "choice_option":
                     self.choice_options.append(next_line)
                     temp_index += 1
                 else:
+                    # 遇到非选项行，停止收集
                     break
             
+            if not self.choice_options:
+                print("⚠️ 警告: [CHOICE] 块中没有找到有效选项")
+                # 如果没有选项，尝试跳过这个块继续执行（虽然这通常意味着剧本有问题）
+                self.in_choice = False
+                self.index += 1
+                self.load_line()
+                return
+
             self.create_choice_buttons()
             return
         
@@ -430,19 +499,28 @@ class DialogueScene(Scene):
         """做出选择"""
         if choice_index < len(self.choice_options):
             choice = self.choice_options[choice_index]
-            effect = choice.get("effect", "")
-            
-            # 解析效果
-            self._apply_choice_effect(effect)
+            target = choice.get("target")
+            effect = choice.get("effect", "") # Legacy support
             
             # 记录选择
             self.manager.game_state.choices_made.append({
                 "scene": self.scene_name,
                 "choice": choice.get("text"),
-                "effect": effect
+                "target": target
             })
+            
+            if target:
+                print(f"🦘 选项跳转到: {target}")
+                self.manager.game_state.current_node_id = target
+                self.manager.game_state.scene_index = 0
+                self.manager.play_current_scene()
+                return
+            
+            # Legacy effect handling
+            if effect:
+                self._apply_choice_effect(effect)
         
-        # 跳过选择支行，继续后续剧情
+        # 如果没有跳转，继续执行（通常不应该发生，除非是纯效果选项）
         self.index += len(self.choice_options) + 1
         self.in_choice = False
         self.choice_options = []
@@ -527,14 +605,12 @@ class DialogueScene(Scene):
             screen.fill(Colors.BG_MORNING)
         
         # 绘制时间信息
-        # time_str = f"Week {self.manager.game_state.week} - Day {self.manager.game_state.day} - {self.manager.game_state.time_str}"
-        # 模糊时间概念，只显示时段
-        time_str = f"{self.manager.game_state.time_str}"
-        time_surf = self.font_text.render(time_str, True, Colors.WHITE)
-        time_bg_rect = time_surf.get_rect(topleft=(20, 20))
-        time_bg_rect.inflate_ip(20, 10)
-        pygame.draw.rect(screen, (0, 0, 0, 150), time_bg_rect, border_radius=5)
-        screen.blit(time_surf, (30, 25))
+        # time_str = f"{self.manager.game_state.time_str}"
+        # time_surf = self.font_text.render(time_str, True, Colors.WHITE)
+        # time_bg_rect = time_surf.get_rect(topleft=(20, 20))
+        # time_bg_rect.inflate_ip(20, 10)
+        # pygame.draw.rect(screen, (0, 0, 0, 150), time_bg_rect, border_radius=5)
+        # screen.blit(time_surf, (30, 25))
 
         # 绘制系统按钮
         self.save_btn.draw(screen, self.font_text)
@@ -542,8 +618,10 @@ class DialogueScene(Scene):
         
         # 绘制角色立绘
         if self.current_character_image and isinstance(self.current_character_image, pygame.Surface):
-            char_x = SCREEN_WIDTH - 450  # 右侧显示
-            char_y = SCREEN_HEIGHT - 600
+            # 居中显示
+            char_rect = self.current_character_image.get_rect()
+            char_x = (SCREEN_WIDTH - char_rect.width) // 2
+            char_y = SCREEN_HEIGHT - char_rect.height
             screen.blit(self.current_character_image, (char_x, char_y))
         elif self.current_speaker and self.current_speaker != "我":
             # 简单的角色占位符（如果没有图像）
@@ -579,7 +657,8 @@ class DialogueScene(Scene):
             lines = self.current_display_text.split('\n')
             
             for line in lines:
-                wrapped = textwrap.wrap(line, width=45)
+                # 调整换行宽度，避免超出对话框 (中文字符宽度约为26px，对话框宽度约844px，32个字左右)
+                wrapped = textwrap.wrap(line, width=32)
                 for w_line in wrapped:
                     text_surf = self.font_text.render(w_line, True, Colors.UI_TEXT)
                     screen.blit(text_surf, (panel_rect[0] + 40, text_start_y))

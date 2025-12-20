@@ -20,7 +20,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 from workflow import WorkflowController
-from agents.config import PathConfig
+from agents.config import ProducerConfig, PathConfig
 
 
 def setup_logging(level=logging.INFO):
@@ -50,11 +50,17 @@ def create_game_flow(args):
         openai_base_url=args.openai_base_url
     )
     
+    # 获取用户自定义要求
+    print("\n请输入您对故事的特别要求（例如：'主角是转校生，喜欢音乐'）：")
+    print("（直接回车则由 AI 自由发挥）")
+    user_requirements = input("> ").strip()
+    
     # 创建游戏
     game_design = workflow.create_new_game(
         game_type=args.game_type,
         game_style=args.game_style,
-        character_count=args.character_count
+        character_count=args.character_count,
+        requirements=user_requirements
     )
     
     print("\n" + "="*70)
@@ -119,7 +125,7 @@ def generate_next_week_flow(args):
     print(f"\n预览:")
     print(story[:300] + "...")
     
-    print(f"\n💾 剧情已追加到: {PathConfig.STORY_FILE}")
+    print(f"\n💾 剧情已追加到: {ProducerConfig.STORY_FILE}")
 
 
 def status_flow():
@@ -183,7 +189,7 @@ def main():
     
     parser.add_argument('--game-type', default='校园恋爱', help='游戏类型')
     parser.add_argument('--game-style', default='轻松温馨', help='游戏风格')
-    parser.add_argument('--character-count', type=int, default=3, help='角色数量')
+    parser.add_argument('--character-count', type=int, default=ProducerConfig.DEFAULT_CHARACTER_COUNT, help='角色数量')
     
     parser.add_argument('--openai-key', help='OpenAI API Key (覆盖环境变量)')
     parser.add_argument('--openai-base-url', help='OpenAI API Base URL (覆盖环境变量)')

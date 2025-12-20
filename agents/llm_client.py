@@ -103,7 +103,7 @@ class LLMClient:
             logger.error(f"OpenAI API 调用失败: {e}")
             raise
 
-    def _chat_google(self, messages: List[Dict[str, str]], temperature: float, json_mode: bool) -> str:
+    def _chat_google(self, messages: List[Dict[str, Any]], temperature: float, json_mode: bool) -> str:
         if not self.client:
             raise ValueError("Google 客户端未初始化")
             
@@ -120,7 +120,29 @@ class LLMClient:
             if role == "system":
                 system_instruction = content
             elif role == "user":
-                contents.append(types.Content(role="user", parts=[types.Part.from_text(text=content)]))
+                parts = []
+                if isinstance(content, str):
+                    parts.append(types.Part.from_text(text=content))
+                elif isinstance(content, list):
+                    for item in content:
+                        if item.get("type") == "text":
+                            parts.append(types.Part.from_text(text=item["text"]))
+                        elif item.get("type") == "image_url":
+                            # 处理图片
+                            image_path = item["image_url"]["url"]
+                            try:
+                                # 如果是本地路径
+                                if os.path.exists(image_path):
+                                    with open(image_path, "rb") as f:
+                                        image_data = f.read()
+                                    parts.append(types.Part.from_bytes(data=image_data, mime_type="image/png")) # 假设是 PNG
+                                else:
+                                    # 暂时不支持网络 URL，或者需要下载
+                                    logger.warning(f"⚠️ Google Client 暂不支持网络图片 URL: {image_path}")
+                            except Exception as e:
+                                logger.error(f"❌ 读取图片失败: {e}")
+                
+                contents.append(types.Content(role="user", parts=parts))
             elif role == "assistant":
                 contents.append(types.Content(role="model", parts=[types.Part.from_text(text=content)]))
         

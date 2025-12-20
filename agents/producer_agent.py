@@ -34,7 +34,8 @@ class ProducerAgent:
         self,
         game_type: str = None,
         game_style: str = None,
-        character_count: int = None
+        character_count: int = None,
+        requirements: str = ""
     ) -> Dict[str, Any]:
         """
         生成完整的游戏设计文档
@@ -43,6 +44,7 @@ class ProducerAgent:
             game_type: 游戏类型（如"校园恋爱"、"奇幻冒险"等）
             game_style: 游戏风格（如"轻松温馨"、"悬疑刺激"等）
             character_count: 可攻略角色数量
+            requirements: 用户特别要求
             
         Returns:
             游戏设计文档字典
@@ -53,22 +55,66 @@ class ProducerAgent:
         character_count = character_count or self.config.DEFAULT_CHARACTER_COUNT
         
         logger.info(f"🎬 开始生成游戏设计文档...")
-        logger.info(f"   类型: {game_type} | 风格: {game_style} | 角色数: {character_count}")
+        logger.info(f"   类型: {game_type} | 风格: {game_style} | 角色数: {character_count} | 深度: {self.config.MAX_DEPTH}")
+        if requirements:
+            logger.info(f"   📌 用户要求: {requirements}")
         
         try:
-            # 构建提示词
+            # 1. CoT 规划阶段
+            logger.info("🧠 正在进行剧情结构规划 (CoT)...")
+            cot_prompt = f"""请为一款 {game_type} 风格为 {game_style} 的 Galgame 构思一个简短的剧情大纲 (Outline)。
+最大深度: {self.config.MAX_DEPTH}
+角色数量: {character_count}
+
+【用户特别要求】
+{requirements if requirements else "无（请自由发挥）"}
+
+请简要描述：
+1. 故事背景与核心冲突
+2. 主要角色的设定与关系
+3. 故事的大致发展走向（起承转合）
+
+不需要详细规划每一层的节点，只需要提供一个清晰的故事蓝图，作为后续生成详细树状结构的参考。"""
+
+            cot_response = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": self.config.SYSTEM_PROMPT},
+                    {"role": "user", "content": cot_prompt}
+                ],
+                temperature=0.8
+            )
+            logger.info("✅ 规划完成")
+            logger.debug(f"CoT 内容: {cot_response[:500]}...")
+            
+            # 保存 CoT 到日志文件
+            try:
+                import os
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                cot_file = os.path.join(PathConfig.LOG_DIR, f"producer_cot_{timestamp}.txt")
+                with open(cot_file, 'w', encoding='utf-8') as f:
+                    f.write(cot_response)
+                logger.info(f"💾 CoT 规划过程已保存至: {cot_file}")
+            except Exception as e:
+                logger.warning(f"⚠️  保存 CoT 失败: {e}")
+
+            # 2. JSON 生成阶段
+            logger.info("📝 正在生成详细设计文档 (JSON)...")
             user_prompt = self.config.GENERATION_PROMPT.format(
                 game_type=game_type,
                 game_style=game_style,
                 character_count=character_count,
-                total_groups=self.config.TOTAL_GROUPS,
-                blocks_per_group=self.config.BLOCKS_PER_GROUP
+                max_depth=self.config.MAX_DEPTH,
+                requirements=requirements if requirements else "无",
+                max_branches=self.config.MAX_BRANCHES
             )
             
-            # 调用 LLM
+            # 将 CoT 结果作为上下文传入
             content = self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": self.config.SYSTEM_PROMPT},
+                    {"role": "user", "content": cot_prompt},
+                    {"role": "assistant", "content": cot_response},
                     {"role": "user", "content": user_prompt}
                 ],
                 temperature=self.config.TEMPERATURE,
@@ -76,25 +122,19 @@ class ProducerAgent:
             )
             
             logger.debug(f"LLM 响应长度: {len(content)} 字符")
-            logger.debug(f"响应前200字符: {content[:200]}")
             
             game_design = JSONParser.parse_ai_response(content)
             
             # 验证必要字段（使用工具类）
-            required_fields = ["title", "background", "outline", "characters", "endings", "scenes"]
+            # 注意：outline 替换为 story_tree，endings 已移除
+            required_fields = ["title", "background", "story_tree", "characters", "scenes"]
             if not JSONParser.validate_required_fields(game_design, required_fields):
                 raise ValueError("生成的设计文档缺少必需字段")
             
             logger.info(f"✅ 游戏设计文档生成成功: 《{game_design['title']}》")
             logger.info(f"   角色数量: {len(game_design['characters'])}")
-            logger.info(f"   故事组数: {len(game_design['outline'])}")
+            logger.info(f"   剧情节点数: {len(game_design['story_tree'])}")
             logger.info(f"   场景数量: {len(game_design.get('scenes', []))}")
-            
-            # 打印场景列表
-            if game_design.get('scenes'):
-                logger.info(f"   场景列表:")
-                for scene in game_design['scenes']:
-                    logger.info(f"      - {scene.get('name', 'Unknown')}")
             
             # 保存到文件
             self.save_game_design(game_design)

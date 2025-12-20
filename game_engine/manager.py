@@ -122,97 +122,43 @@ class GameManager:
     def start_story(self):
         """开始剧情"""
         # 重置状态
-        self.game_state.group = 1
-        self.game_state.block = 1
-        self.game_state.time_period = 0 # 上午
+        self.game_state.current_node_id = "root" # 假设根节点ID为 root
+        self.game_state.scene_index = 0
         self.play_current_scene()
     
     def advance_story(self):
-        """推进剧情到下一个时间段"""
-        # 推进时间
-        self.game_state.advance_time()
-        self.play_current_scene()
+        """推进剧情 (Node模式下通常由 Jump/Choice 触发，此方法作为备用)"""
+        print("⚠️ advance_story 被调用，但在 Node 模式下应由脚本控制跳转")
+        pass
     
     def on_scene_complete(self, scene_name: str):
         """场景播放结束回调"""
         print(f"🎬 场景结束: {scene_name}")
-        
-        if scene_name.startswith("[支线:"):
-            # 支线结束，继续检查是否有其他支线或播放主线
-            # 注意：支线不消耗时间
-            self.play_current_scene()
-        else:
-            # 主线结束，推进时间
-            self.advance_story()
+        # Node 模式下，如果场景结束且没有跳转，说明该节点剧情播完了
+        # 如果是结局节点，则结束游戏
+        print("🏁 剧情结束，返回标题画面")
+        self.change_scene(TitleScene(self))
 
     def play_current_scene(self):
-        """播放当前时间段的场景"""
+        """播放当前节点的剧情"""
         state = self.game_state
+        node_id = state.current_node_id
         
-        # 1. 优先检查是否有待播放的关系剧情
-        if state.pending_relationship_stories:
-            # 取出第一个待播放的剧情
-            char_name, level = state.pending_relationship_stories.pop(0)
-            print(f"💕 触发关系剧情: {char_name} Lv.{level}")
-            
-            char_id = self.get_character_id(char_name)
-            if char_id:
-                script_text = GameDataLoader.load_relationship_story(char_id, level)
-                if script_text:
-                    lines = StoryParser.parse_script(script_text)
-                    scene_name = f"[支线: {char_name} Lv.{level}]"
-                    self.change_scene(DialogueScene(self, lines, scene_name))
-                    return
-                else:
-                    print(f"⚠️ 无法加载关系剧情文件，跳过")
-            else:
-                print(f"⚠️ 无法找到角色ID: {char_name}，跳过")
-        
-        # 2. 播放主线剧情
-        # 检查是否超出范围
-        if state.group not in self.parsed_story:
-            print("🎊 剧情已全部播放完毕")
-            self.change_scene(TitleScene(self))
+        if not node_id:
+            print("❌ current_node_id 为空")
+            return
+
+        if node_id not in self.parsed_story:
+            print(f"⚠️ 未找到节点剧情: {node_id}")
+            # 尝试查找是否有默认结局或提示
             return
             
-        group_data = self.parsed_story[state.group]
-        if state.block not in group_data:
-            # 如果这一块没有数据，尝试推进到下一块
-            print(f"⚠️ Group {state.group} Block {state.block} 无数据，跳过")
-            self.advance_story()
-            return
-            
-        block_data = group_data[state.block]
-        time_str = state.time_str # "上午", "下午", "傍晚", "深夜"
-        
-        # 注意：WriterConfig 中只定义了 "上午", "下午", "傍晚"
-        # 如果是 "深夜"，可能没有剧情，直接跳过
-        # 兼容新的 scene_N 格式
-        if time_str not in block_data:
-            # 尝试查找 scene_N 格式的键
-            found = False
-            for key in block_data.keys():
-                if key.startswith("scene_"):
-                    # 简单策略：按顺序播放，这里需要更复杂的逻辑来映射时间到场景
-                    # 暂时只播放第一个找到的场景，或者修改 GameState 来支持 scene_index
-                    scene_lines = block_data[key]
-                    scene_name = f"Group {state.group} - Block {state.block} - {key}"
-                    print(f"▶️  播放场景: {scene_name}")
-                    self.change_scene(DialogueScene(self, scene_lines, scene_name))
-                    found = True
-                    break
-            
-            if not found:
-                print(f"ℹ️  {time_str} 无剧情，跳过")
-                self.advance_story()
-            return
-            
-        scene_lines = block_data[time_str]
-        scene_name = f"Group {state.group} - Block {state.block} - {time_str}"
-        print(f"▶️  播放场景: {scene_name}")
+        lines = self.parsed_story[node_id]
+        scene_name = f"Node: {node_id}"
+        print(f"▶️  播放节点: {node_id} ({len(lines)} 行)")
         
         # 切换到对话场景
-        self.change_scene(DialogueScene(self, scene_lines, scene_name))
+        self.change_scene(DialogueScene(self, lines, scene_name))
     
     def change_scene(self, new_scene):
         """切换场景"""

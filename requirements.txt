@@ -14,3 +14,9 @@ requests>=2.31.0      # HTTP 请求（下载生成的图像）
 
 # Google Gemini API
 google-generativeai>=0.5.0
+
+# 背景移除
+rembg>=2.0.50
+
+# rembg 依赖
+onnxruntime>=1.16.0

@@ -19,7 +19,7 @@ class MusicAgent:
         
         Args:
             api_key: API Key (如果需要)
-            base_url: API Base URL (例如: https://api.suno-proxy.com/v1)
+            base_url: API Base URL (例如:
         """
         # 优先使用传入的参数，否则尝试从环境变量读取
         self.api_key = api_key or APIConfig.MUSIC_API_KEY
@@ -34,88 +34,86 @@ class MusicAgent:
     def generate_bgm(self, game_design: Dict[str, Any]) -> Optional[str]:
         """
         根据游戏设计生成背景音乐
-        
-        Args:
-            game_design: 游戏设计文档
-            
-        Returns:
-            生成的音乐文件路径 (str) 或 None
         """
         title = game_design.get('title', 'Game Theme')
         music_style = game_design.get('music_style', 'Anime, Piano, Emotional')
         music_prompt = game_design.get('music_prompt', f"A beautiful theme song for {title}")
         
+        # 检查是否已存在
+        file_name = "theme.mp3"
+        file_path = self.output_dir / file_name
+        if file_path.exists():
+            logger.info(f"✅ 背景音乐已存在，跳过生成: {file_path}")
+            return str(file_path)
+
         logger.info(f"🎵 正在生成背景音乐: {title}")
         logger.info(f"   风格: {music_style}")
         
-        # 构造请求参数 (参考用户提供的截图)
+        # 构造请求参数
+        # 参考 music_generator.py 的逻辑
+        # tags: 对应 music_style
+        # prompt: 对应 music_prompt (虽然 music_generator.py 里 prompt 是 "a"，但这里我们用 music_prompt 填充 tags 可能会更好，或者直接用 music_style)
+        # 实际上 music_generator.py 里 tags 是 "Pure music, light music..."，prompt 是 "a"
+        # 我们这里将 music_style 和 music_prompt 组合进 tags，或者只用 music_style
+        
+        # 组合 tags
+        tags = f"Pure music, light music, game, galgame, {music_style}"
+        
         payload = {
+            "prompt": "", 
+            "tags": tags,
+            "mv": APIConfig.MUSIC_MODEL,
             "title": title,
-            "tags": music_style,
-            "generation_type": "TEXT",
-            "prompt": music_prompt,
-            "negative_tags": "low quality, noise, distortion",
-            "mv": "chirp-v3-5" # 使用较新的模型
+            "make_instrumental": True
         }
         
-        # 尝试调用 API
-        # 注意：这里假设是一个兼容 OpenAI 格式或者特定的 POST 接口
-        # 如果用户说是 "OpenAI 接口"，通常是指 /v1/chat/completions (Suno 插件) 
-        # 或者是一个自定义的生成端点。
-        # 根据截图参数，这更像是一个直接的生成接口。
-        # 我们这里假设它是一个 POST 请求到 base_url/suno/generate (假设路径)
-        # 或者直接是 base_url (如果用户给的是完整路径)
-        
-        # 为了兼容性，我们先尝试直接 POST 到 base_url
-        # 如果 base_url 是类似 https://api.example.com/v1，我们可能需要追加路径
-        # 这里我们假设 base_url 就是完整的生成端点，或者用户会在 .env 里配置完整的
-        
-        target_url = self.base_url
-        if not target_url.endswith('/generate') and 'suno' not in target_url:
-             # 简单的启发式：如果 URL 看起来像根路径，尝试追加常见的生成路径
-             # 但最稳妥的是让用户提供完整的 Endpoint
-             pass
+        # 构造 API URL
+        # 提交接口: /suno/submit/music
+        base_url_clean = self.base_url.rstrip('/')
+        # 如果 base_url 已经包含了 /suno/submit/music，则需要处理，但通常 base_url 是域名
+        # 假设 base_url 是 https://api.vectorengine.ai
+        submit_url = f"{base_url_clean}/suno/submit/music"
 
         headers = {
             "Content-Type": "application/json",
-            "Authorization": f"Bearer {self.api_key}"
+            "Authorization": f"Bearer {self.api_key}",
+            "Accept": "application/json"
         }
         
         try:
             # 1. 发起生成请求
-            logger.info("   🚀 发送生成请求...")
-            response = requests.post(target_url, json=payload, headers=headers, timeout=60)
+            logger.info(f"   🚀 发送生成请求到: {submit_url}")
+            response = requests.post(submit_url, json=payload, headers=headers, timeout=60)
             
             if response.status_code != 200:
                 logger.error(f"❌ 音乐生成请求失败: {response.status_code} - {response.text}")
                 return None
-                
-            data = response.json()
-            # 解析返回结果
-            # 假设返回格式包含 audio_url 或类似字段
-            # 不同的代理服务返回格式可能不同，这里需要根据实际情况调整
-            # 常见的 Suno API 返回是一个列表，包含生成的 clip 信息
             
-            audio_url = None
-            
-            # 尝试适配常见的返回格式
-            if isinstance(data, list) and len(data) > 0:
-                audio_url = data[0].get('audio_url') or data[0].get('url')
-            elif isinstance(data, dict):
-                audio_url = data.get('audio_url') or data.get('url')
-                # 如果是异步任务，可能返回 task_id
-                if not audio_url and 'id' in data:
-                    task_id = data['id']
-                    logger.info(f"   ⏳ 任务已提交 (ID: {task_id})，等待生成...")
-                    audio_url = self._wait_for_generation(target_url, task_id, headers)
-
-            if not audio_url:
-                logger.error(f"❌ 无法从响应中获取音频 URL: {data}")
+            try:
+                resp_json = response.json()
+                # music_generator.py: music_id = json.loads(response.text)["data"]
+                # 假设返回结构是 {"code": 200, "data": "music_id_string", ...}
+                music_id = resp_json.get("data")
+                if not music_id:
+                     logger.error(f"❌ 无法获取 music_id: {resp_json}")
+                     return None
+            except json.JSONDecodeError:
+                logger.error(f"❌ 响应不是有效的 JSON 格式: {response.text[:200]}...")
                 return None
                 
-            # 2. 下载音频
+            logger.info(f"   ⏳ 任务已提交 (ID: {music_id})，等待生成...")
+            
+            # 2. 轮询等待生成
+            fetch_url = f"{base_url_clean}/suno/fetch/{music_id}"
+            audio_url = self._wait_for_generation(fetch_url, headers)
+
+            if not audio_url:
+                logger.error(f"❌ 音乐生成超时或失败")
+                return None
+                
+            # 3. 下载音频
             logger.info(f"   📥 正在下载音乐: {audio_url}")
-            file_name = "theme.mp3" # 统一命名为 theme.mp3
+            file_name = "theme.mp3"
             file_path = self.output_dir / file_name
             
             with requests.get(audio_url, stream=True) as r:
@@ -131,12 +129,41 @@ class MusicAgent:
             logger.error(f"❌ 音乐生成异常: {e}")
             return None
 
-    def _wait_for_generation(self, base_url: str, task_id: str, headers: Dict) -> Optional[str]:
+    def _wait_for_generation(self, fetch_url: str, headers: Dict) -> Optional[str]:
         """轮询等待异步生成任务完成"""
-        # 这是一个通用的轮询逻辑，具体 URL 结构可能需要调整
-        # 假设查询 URL 是 base_url/feed 或 base_url/{id}
+        max_retries = 60 # 10分钟超时
+        for _ in range(max_retries):
+            try:
+                response = requests.get(fetch_url, headers=headers, timeout=30)
+                if response.status_code != 200:
+                    logger.warning(f"   ⚠️ 轮询请求失败: {response.status_code}")
+                    time.sleep(10)
+                    continue
+                
+                data = response.json()
+                # music_generator.py: if response_data['data']["status"] == 'SUCCESS':
+                # 注意：这里假设 data['data'] 是一个字典，包含 status
+                # 结构可能是 {"code": 200, "data": {"status": "SUCCESS", "data": [...]}}
+                
+                inner_data = data.get("data", {})
+                status = inner_data.get("status")
+                
+                if status == 'SUCCESS':
+                    # 获取音频 URL
+                    # music_generator.py: audio_urls = [item["audio_url"] for item in response_data["data"]["data"]]
+                    clips = inner_data.get("data", [])
+                    if clips and len(clips) > 0:
+                        return clips[0].get("audio_url")
+                elif status == 'FAILED':
+                    logger.error(f"❌ 生成任务失败: {inner_data.get('error_message')}")
+                    return None
+                
+                # 继续等待
+                logger.info("   ⏳ 生成中...")
+                time.sleep(10)
+                
+            except Exception as e:
+                logger.warning(f"   ⚠️ 轮询异常: {e}")
+                time.sleep(10)
         
-        # 这里的逻辑比较依赖具体的 API 实现
-        # 暂时先留空，假设是同步返回或者 URL 直接可用
-        # 如果是异步，通常需要另一个 fetch 接口
         return None

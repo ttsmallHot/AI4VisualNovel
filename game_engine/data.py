@@ -20,12 +20,12 @@ class GameDataLoader:
     @staticmethod
     def load_character_info() -> Optional[Dict]:
         """加载角色信息"""
-        if not DataPaths.CHARACTER_INFO_FILE.exists():
-            print(f"❌ 未找到角色信息文件: {DataPaths.CHARACTER_INFO_FILE}")
-            return None
+        if DataPaths.CHARACTER_INFO_FILE.exists():
+            with open(DataPaths.CHARACTER_INFO_FILE, 'r', encoding='utf-8') as f:
+                return json.load(f)
         
-        with open(DataPaths.CHARACTER_INFO_FILE, 'r', encoding='utf-8') as f:
-            return json.load(f)
+        print(f"ℹ️  未找到角色存档文件 (新游戏): {DataPaths.CHARACTER_INFO_FILE}")
+        return None
     
     @staticmethod
     def load_story() -> Optional[str]:
@@ -68,25 +68,17 @@ class StoryParser:
         return lines
 
     @staticmethod
-    def parse_story(story_text: str) -> Dict[int, Dict[int, Dict[str, List[Dict]]]]:
+    def parse_story(story_text: str) -> Dict[str, List[Dict]]:
         """
-        解析剧情文本为结构化数据
+        解析剧情文本为结构化数据 (Tree-based)
         
         返回格式:
         {
-            1: { # Group 1
-                1: { # Block 1
-                    "上午": [lines...],
-                    "下午": [lines...],
-                    "傍晚": [lines...]
-                }
-            }
+            "node_id": [lines...]
         }
         """
-        groups = {}
-        current_group = 0
-        current_block = 0
-        current_time = ""
+        nodes = {}
+        current_node_id = None
         current_lines = []
         
         lines = story_text.strip().split('\n')
@@ -94,59 +86,43 @@ class StoryParser:
         for line in lines:
             line = line.strip()
             
-            # 跳过空行和标题行
+            # 跳过空行和无关行
             if not line or line.startswith('这里为您生成') or line.startswith('=== End'):
                 continue
             
-            # 检测 Group/Block 标题: === Group 1 - Block 1 ===
-            # 兼容旧格式: === Week 1 - Day 1 ===
-            group_block_match = re.match(r'=== (?:Group|Week) (\d+) - (?:Block|Day) (\d+) ===', line)
-            if group_block_match:
-                current_group = int(group_block_match.group(1))
-                current_block = int(group_block_match.group(2))
+            # 匹配节点头: === Node: node_id ===
+            node_match = re.match(r'===\s*Node:\s*(.+?)\s*===', line, re.IGNORECASE)
+            if node_match:
+                # 保存上一个节点
+                if current_node_id:
+                    nodes[current_node_id] = current_lines
                 
-                if current_group not in groups:
-                    groups[current_group] = {}
-                if current_block not in groups[current_group]:
-                    groups[current_group][current_block] = {}
-                
-                print(f"📖 解析 Group {current_group} - Block {current_block}")
-                continue
-            
-            # 检测场景标题: ## 场景名
-            scene_match = re.match(r'## (.+)', line)
-            if scene_match:
-                # 保存上一个场景
-                if current_time and current_lines:
-                    groups[current_group][current_block][current_time] = current_lines
-                    print(f"   保存场景: {current_time} ({len(current_lines)} 行)")
-                
-                content = scene_match.group(1).strip()
-                # 纯场景名模式，不再解析时间
-                current_time = f"scene_{len(groups[current_group][current_block]) + 1}"
-                location = content
-                
+                current_node_id = node_match.group(1).strip()
                 current_lines = []
-                # 自动添加背景指令
-                current_lines.append({"type": "background", "value": location})
-                print(f"   开始解析场景: {current_time} - {location}")
+                print(f"📖 解析 Node: {current_node_id}")
                 continue
             
-            # 解析具体内容
-            if current_group and current_block and current_time:
-                parsed_line = StoryParser._parse_line(line)
-                if parsed_line:
-                    current_lines.append(parsed_line)
+            # 解析行内容
+            if current_node_id:
+                parsed = StoryParser._parse_line(line)
+                if parsed:
+                    current_lines.append(parsed)
         
-        # 保存最后一个场景
-        if current_group and current_block and current_time and current_lines:
-            groups[current_group][current_block][current_time] = current_lines
-        
-        return groups
+        # 保存最后一个节点
+        if current_node_id:
+            nodes[current_node_id] = current_lines
+            
+        return nodes
     
     @staticmethod
     def _parse_line(line: str) -> Optional[Dict]:
         """解析单行剧情"""
+        # ## [场景名]
+        # 兼容两种格式: "## [场景名]" 和 "## 场景名"
+        scene_match = re.match(r'##\s*\[?(.+?)\]?$', line)
+        if scene_match:
+            return {"type": "scene", "value": scene_match.group(1).strip()}
+
         # [IF: Role >= Level]
         if_match = re.match(r'\[IF: (.+?) >= (\d+)\]', line)
         if if_match:
@@ -180,6 +156,44 @@ class StoryParser:
             text = line[prefix_len:].strip()
             return {"type": "dialogue", "speaker": "主角", "text": text, "emotion": "neutral"}
         
+        # [JUMP: node_id]
+        jump_match = re.match(r'\[JUMP: (.+?)\]', line)
+        if jump_match:
+            return {"type": "jump", "target": jump_match.group(1)}
+
+        # [CHOICE]
+        if line == '[CHOICE]':
+            return {"type": "choice_start"}
+        
+        # 选项 (格式: 1. Option Text [JUMP: node_id])
+        # 兼容格式: "1. 选项文字 [JUMP: node_id]" 和 "1. 选项文字"
+        # 使用更宽松的正则，允许 [JUMP] 部分可选，防止解析失败
+        choice_match = re.match(r'(\d+)\.\s*(.+?)(?:\s*\[JUMP:\s*(.+?)\])?$', line)
+        if choice_match:
+            text = choice_match.group(2).strip()
+            target = choice_match.group(3).strip() if choice_match.group(3) else None
+            
+            #以此防止 [JUMP 被包含在 text 中 (如果正则贪婪匹配了)
+            if '[JUMP' in text:
+                text = text.split('[JUMP')[0].strip()
+                
+            return {
+                "type": "choice_option",
+                "index": int(choice_match.group(1)),
+                "text": text,
+                "target": target
+            }
+        
+        # 旧格式兼容: 选项N: xxx → [效果]
+        old_choice_match = re.match(r'选项(\d+): (.+?) → \[(.+?)\]', line)
+        if old_choice_match:
+             return {
+                "type": "choice_option",
+                "index": int(old_choice_match.group(1)),
+                "text": old_choice_match.group(2),
+                "effect": old_choice_match.group(3) # Legacy effect
+            }
+
         # 其他角色对话 - 支持中文和英文
         # 中文格式: 小日向夏海: "对话"
         # 英文格式: CHARACTER_A: "对话" (兼容)
@@ -190,20 +204,6 @@ class StoryParser:
             # 过滤掉一些特殊情况（如选项文字中的冒号）
             if speaker and not speaker.startswith('选项') and len(speaker) < 20:
                 return {"type": "dialogue", "speaker": speaker, "text": text, "emotion": "neutral"}
-        
-        # [CHOICE]
-        if line == '[CHOICE]':
-            return {"type": "choice_start"}
-        
-        # 选项 (格式: 选项N: xxx → [效果])
-        choice_match = re.match(r'选项(\d+): (.+?) → \[(.+?)\]', line)
-        if choice_match:
-            return {
-                "type": "choice_option",
-                "index": int(choice_match.group(1)),
-                "text": choice_match.group(2),
-                "effect": choice_match.group(3)
-            }
         
         # SOUND_EFFECT
         if line.startswith('SOUND_EFFECT:'):

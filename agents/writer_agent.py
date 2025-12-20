@@ -11,7 +11,7 @@ import json
 from typing import Dict, Any, List, Optional
 from .llm_client import LLMClient
 
-from .config import APIConfig, WriterConfig, PathConfig
+from .config import APIConfig, WriterConfig, PathConfig, ArtistConfig
 from .utils import JSONParser, FileHelper, TextProcessor
 
 logger = logging.getLogger(__name__)
@@ -33,51 +33,68 @@ class WriterAgent:
         
         logger.info("✅ 编剧 Agent 初始化成功")
     
-    def generate_block_story(
+    def generate_node_story(
         self,
-        group: int,
-        block: int,
+        node_id: str,
+        node_info: Dict[str, Any],
         game_design: Dict[str, Any],
         previous_story_summary: str = "",
         critique_feedback: str = "无"
     ) -> str:
         """
-        生成指定剧情块的详细剧情
+        生成指定剧情节点的详细剧情
         
         Args:
-            group: 组数
-            block: 块数 (1-7)
+            node_id: 节点ID
+            node_info: 节点信息 (包含 summary, children 等)
             game_design: 游戏设计文档
             previous_story_summary: 前情提要
             critique_feedback: 演员反馈意见
             
         Returns:
-            本块剧情文本
+            本节点剧情文本
         """
-        logger.info(f"✍️  开始生成第 {group} 组 - Block {block} 剧情")
+        logger.info(f"✍️  开始生成节点 【{node_id}】 剧情")
         
         try:
-            # 获取本组大纲
-            group_key = f"group_{group}"
-            group_outline = game_design.get('outline', {}).get(group_key, "继续发展剧情")
+            # 获取节点概要
+            node_summary = node_info.get('summary', '剧情发展')
+            parent_id = node_info.get('parent')
+            
+            # 获取父节点摘要 (如果需要，可以从 game_design 中查找)
+            parent_summary = "无"
+            if parent_id and 'story_tree' in game_design:
+                parent_node = game_design['story_tree'].get(parent_id)
+                if parent_node:
+                    parent_summary = parent_node.get('summary', '无')
+
+            # 获取子节点列表
+            children_ids = node_info.get('children', [])
+            children_nodes_str = ", ".join(children_ids) if children_ids else "无 (结局)"
             
             # 获取可用场景列表
             available_scenes = self._format_scenes(game_design.get('scenes', []))
             
+            # 获取可用表情列表
+            available_expressions = ", ".join(ArtistConfig.STANDARD_EXPRESSIONS)
+            
             # 构建提示词
-            prompt = self.config.DAILY_GENERATION_PROMPT.format(
-                group=group,
-                block=block,
+            prompt = self.config.NODE_GENERATION_PROMPT.format(
+                node_id=node_id,
                 game_design=self._format_game_design(game_design),
-                group_outline=group_outline,
+                node_summary=node_summary,
+                parent_summary=parent_summary,
+                children_nodes=children_nodes_str,
                 available_scenes=available_scenes,
-                # character_states 已从 Prompt 模板中移除，这里不再传入
+                available_expressions=available_expressions,
                 previous_story_summary=previous_story_summary,
-                critique_feedback=critique_feedback
+                critique_feedback=critique_feedback,
+                child_1_id=children_ids[0] if len(children_ids) > 0 else "无",
+                child_2_id=children_ids[1] if len(children_ids) > 1 else "无"
             )
             
             # 调用 LLM
-            daily_story = self.llm_client.chat_completion(
+            story_content = self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": self.config.SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
@@ -85,119 +102,14 @@ class WriterAgent:
                 temperature=self.config.TEMPERATURE
             )
             
-            return daily_story
+            return story_content
             
         except Exception as e:
             logger.error(f"❌ 生成剧情失败: {str(e)}")
             raise
-            
-            logger.info(f"✅ 第 {group} 组剧情生成成功")
-            logger.info(f"   字数: {len(response.choices[0].message.content)} 字符")
-            
-            return response.choices[0].message.content
-            
-        except Exception as e:
-            logger.error(f"❌ 第 {group} 组剧情生成失败: {e}")
-            raise
-    
-    def generate_relationship_story(
-        self,
-        character_info: Dict[str, Any],
-        level: int
-    ) -> str:
-        """
-        生成角色关系专属剧情
-        
-        Args:
-            character_info: 角色信息
-            level: 关系等级 (1-5)
-            
-        Returns:
-            剧情文本
-        """
-        char_name = character_info.get('name', 'Unknown')
-        logger.info(f"💕 生成 {char_name} 的 Level {level} 剧情")
-        
-        try:
-            level_name = self.config.RELATIONSHIP_LEVEL_NAMES.get(level, "未知")
-            
-            prompt = self.config.RELATIONSHIP_STORY_PROMPT.format(
-                character_name=char_name,
-                character_id=character_info.get('id', 'unknown'),
-                character_info=json.dumps(character_info, ensure_ascii=False, indent=2),
-                level=level,
-                level_name=level_name
-            )
-            
-            story = self.llm_client.chat_completion(
-                messages=[
-                    {"role": "system", "content": self.config.SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.8
-            )
-            
-            logger.info(f"✅ {char_name} Level {level} 剧情生成成功")
-            return story
-            
-        except Exception as e:
-            logger.error(f"❌ 生成关系剧情失败: {e}")
-            return ""
 
-    def update_character_states(
-        self,
-        current_states: Dict[str, Any],
-        player_choice: str,
-        choice_effects: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """
-        根据玩家选择更新角色状态
-        
-        Args:
-            current_states: 当前角色状态
-            player_choice: 玩家的选择文本
-            choice_effects: 选择的影响（好感度变化等）
-            
-        Returns:
-            更新后的角色状态
-        """
-        logger.info(f"📊 更新角色状态...")
-        logger.debug(f"   玩家选择: {player_choice}")
-        logger.debug(f"   影响: {choice_effects}")
-        
-        try:
-            # 应用数值变化
-            new_states = self._apply_choice_effects(current_states, choice_effects)
-            
-            # 使用 GPT-4 生成更细致的状态更新（如解锁事件等）
-            prompt = self.config.CHARACTER_UPDATE_PROMPT.format(
-                current_states=json.dumps(current_states, ensure_ascii=False, indent=2),
-                player_choice=player_choice,
-                choice_effects=json.dumps(choice_effects, ensure_ascii=False, indent=2)
-            )
-            
-            content = self.llm_client.chat_completion(
-                messages=[
-                    {"role": "system", "content": self.config.SYSTEM_PROMPT},
-                    {"role": "user", "content": prompt}
-                ],
-                temperature=0.5,
-                json_mode=True
-            )
-            
-            ai_updates = JSONParser.parse_ai_response(content)
-            
-            # 合并 AI 建议的更新
-            for char_name, updates in ai_updates.items():
-                if char_name in new_states:
-                    new_states[char_name].update(updates)
-            
-            # 保存更新
-            self.save_character_states(new_states)
-            
-            logger.info(f"✅ 角色状态更新完成")
-            
-            return new_states
+    # generate_relationship_story 已移除
+    # update_character_states 已移除
             
         except Exception as e:
             logger.error(f"❌ 角色状态更新失败: {e}")

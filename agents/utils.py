@@ -107,10 +107,46 @@ class JSONParser:
         content = content.strip('\ufeff').strip()
         
         # 3. 提取 JSON 对象（从第一个 { 到最后一个 }）
+        # 改进：处理 Extra data 问题，尝试找到正确的结束位置
         start = content.find('{')
-        end = content.rfind('}')
-        if start != -1 and end != -1 and start < end:
-            content = content[start:end+1]
+        if start != -1:
+            # 简单的括号计数法来找到匹配的结束括号
+            count = 0
+            end = -1
+            in_string = False
+            escape = False
+            
+            for i in range(start, len(content)):
+                char = content[i]
+                
+                if escape:
+                    escape = False
+                    continue
+                    
+                if char == '\\':
+                    escape = True
+                    continue
+                    
+                if char == '"':
+                    in_string = not in_string
+                    continue
+                
+                if not in_string:
+                    if char == '{':
+                        count += 1
+                    elif char == '}':
+                        count -= 1
+                        if count == 0:
+                            end = i
+                            break
+            
+            if end != -1:
+                content = content[start:end+1]
+            else:
+                # 如果计数法失败，回退到简单的 rfind
+                end = content.rfind('}')
+                if end != -1 and start < end:
+                    content = content[start:end+1]
         
         # 4. 移除注释（JSON 不支持注释）
         # 移除单行注释 //

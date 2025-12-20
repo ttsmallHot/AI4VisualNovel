@@ -81,6 +81,68 @@ class ActorAgent:
             logger.error(f"❌ 演员 {self.name} 审核失败: {str(e)}")
             return "PASS"  # 出错时默认通过，避免阻塞
         
+    def critique_visual(self, image_path: str, expression: str = "neutral", reference_image_path: Optional[str] = None) -> str:
+        """
+        审核角色立绘
+        
+        Args:
+            image_path: 图片文件路径
+            expression: 表情名称
+            reference_image_path: 参考图片路径 (通常是 neutral 表情)
+            
+        Returns:
+            审核意见 (PASS 或 修改建议)
+        """
+        logger.info(f"🎨 演员 {self.name} 正在审核立绘: {image_path} (表情: {expression})...")
+        
+        # 构建 System Prompt
+        system_prompt = self.config.SYSTEM_PROMPT.format(
+            name=self.name,
+            personality=self.character_info.get('personality', ''),
+            background=self.character_info.get('background', '')
+        )
+        
+        # 构建 User Prompt
+        user_prompt = self.config.IMAGE_CRITIQUE_PROMPT.format(
+            appearance=self.character_info.get('appearance', ''),
+            expression=expression
+        )
+        
+        try:
+            # 构造包含图片的消息
+            content = [
+                {"type": "text", "text": user_prompt},
+                {"type": "image_url", "image_url": {"url": image_path}}
+            ]
+            
+            # 如果有参考图，添加到消息中
+            if reference_image_path and expression != "neutral":
+                content.insert(1, {"type": "text", "text": "这是你的标准立绘 (Neutral 表情) 作为参考："})
+                content.insert(2, {"type": "image_url", "image_url": {"url": reference_image_path}})
+            
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": content}
+            ]
+            
+            feedback = self.llm_client.chat_completion(
+                messages=messages,
+                temperature=self.config.TEMPERATURE
+            )
+            
+            feedback = feedback.strip()
+            
+            if "PASS" in feedback:
+                logger.info(f"✅ 演员 {self.name} 立绘审核通过")
+                return "PASS"
+            else:
+                logger.warning(f"⚠️ 演员 {self.name} 对立绘提出修改建议")
+                return feedback
+                
+        except Exception as e:
+            logger.error(f"❌ 演员 {self.name} 立绘审核失败: {str(e)}")
+            return "PASS"  # 出错时默认通过
+
     def analyze_visual_requirements(self, script_block: str, existing_assets: List[str]) -> List[Dict[str, Any]]:
         """
         分析剧本片段，生成视觉需求描述
@@ -115,6 +177,7 @@ class ActorAgent:
   {{
     "trigger_text": "对应的那句台词或动作描述",
     "type": "new",  // 或 "reuse"
+    "expression_name": "表情关键词 (英文，例如 'shy', 'happy', 'angry')。如果剧本中有 [IMAGE: 角色-表情]，请直接使用该表情名。",
     "description": "详细的视觉描述，包含表情、动作、手势、红晕等细节。例如：'双手捂住嘴巴，眼睛瞪大，脸颊通红，惊讶的表情'。",
     "asset_id": "" // 如果是 reuse，填写现有素材的文件名
   }}
@@ -129,7 +192,7 @@ class ActorAgent:
                     {"role": "user", "content": f"剧本片段:\n{script_block}"}
                 ],
                 temperature=0.7,
-                response_format={"type": "json_object"}
+                json_mode=True
             )
             
             # 解析 JSON
@@ -152,3 +215,100 @@ class ActorAgent:
         except Exception as e:
             logger.error(f"❌ 演员 {self.name} 视觉分析失败: {str(e)}")
             return []
+        
+    def generate_expression_description(self, expression_name: str) -> str:
+        """
+        生成特定表情的视觉描述
+        
+        Args:
+            expression_name: 表情名称 (如 'shy', 'happy')
+            
+        Returns:
+            详细的视觉描述
+        """
+        system_prompt = f"""
+你扮演 {self.name}。
+你的任务是描述你在呈现【{expression_name}】表情时的具体样貌。
+请提供详细的视觉描述，包含五官细节、面部神态、眼神、嘴型以及可能的肢体动作。
+描述将用于生成立绘图片。
+
+角色设定:
+{json.dumps(self.character_info, ensure_ascii=False, indent=2)}
+
+请直接输出描述文本，不要包含其他内容。
+"""
+        try:
+            description = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": f"请描述你的【{expression_name}】表情。"}
+                ],
+                temperature=0.7
+            )
+            return description.strip()
+        except Exception as e:
+            logger.error(f"❌ 生成表情描述失败 ({expression_name}): {e}")
+            return f"{self.name} with {expression_name} expression"
+        
+    def critique_image(self, image_path: str, reference_image_path: Optional[str] = None, expression: str = "neutral") -> Dict[str, Any]:
+        """
+        审核生成的立绘图片是否符合角色设定
+        
+        Args:
+            image_path: 待审核图片的路径
+            reference_image_path: 参考图片路径 (通常是 neutral 表情)
+            expression: 当前图片应该呈现的表情
+            
+        Returns:
+            Dict: {
+                "pass": bool,
+                "reason": str,
+                "suggestion": str
+            }
+        """
+        logger.info(f"🧐 演员 {self.name} 正在审核图片: {expression}")
+        
+        system_prompt = f"""
+你扮演 {self.name}。
+你需要审核画师为你生成的立绘图片。
+你的任务是判断这张图片是否符合你的【外貌设定】以及是否准确表达了【{expression}】这个表情。
+
+角色设定:
+{json.dumps(self.character_info, ensure_ascii=False, indent=2)}
+
+如果提供了参考图 (Reference Image)，请确保待审核图片 (Target Image) 与参考图是同一个人（发型、发色、瞳色、五官特征一致）。
+如果这是第一张图 (Neutral)，请严格根据角色设定审核。
+
+请以 JSON 格式输出审核结果:
+{{
+    "pass": true/false,
+    "reason": "通过的原因或失败的具体问题 (如: 头发颜色不对，表情不够开心)",
+    "suggestion": "如果是 false，请给出具体的修改建议，供画师重画"
+}}
+"""
+        
+        user_content = []
+        user_content.append({"type": "text", "text": f"这是待审核的图片 (Target Image)，表情应该是: {expression}"})
+        user_content.append({"type": "image_url", "image_url": {"url": image_path}})
+        
+        if reference_image_path and os.path.exists(reference_image_path):
+            user_content.append({"type": "text", "text": "这是参考图片 (Reference Image - Neutral):"})
+            user_content.append({"type": "image_url", "image_url": {"url": reference_image_path}})
+            
+        try:
+            response = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_content}
+                ],
+                temperature=0.1, # 审核需要严谨
+                json_mode=True
+            )
+            
+            result = json.loads(response)
+            return result
+            
+        except Exception as e:
+            logger.error(f"❌ 演员 {self.name} 图片审核失败: {e}")
+            # 如果审核出错，默认通过，避免阻塞
+            return {"pass": True, "reason": "审核过程出错，自动通过", "suggestion": ""}
