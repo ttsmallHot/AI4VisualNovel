@@ -41,12 +41,16 @@ class Colors:
 
 # --- 数据路径配置 ---
 class DataPaths:
-    # game_engine/config.py -> game_engine/ -> pygame_galgame/
-    BASE_DIR = Path(__file__).parent.parent
+    # 自动识别是否为打包环境
+    import sys
+    if getattr(sys, 'frozen', False):
+        BASE_DIR = Path(sys._MEIPASS)
+    else:
+        BASE_DIR = Path(__file__).parent.parent
+    
     DATA_DIR = BASE_DIR / "data"
     
     GAME_DESIGN_FILE = DATA_DIR / "game_design.json"
-    CHARACTER_INFO_FILE = DATA_DIR / "character_info.json"
     STORY_FILE = DATA_DIR / "story.txt"
     
     IMAGES_DIR = DATA_DIR / "images"

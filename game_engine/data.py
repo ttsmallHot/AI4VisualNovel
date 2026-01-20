@@ -1,6 +1,6 @@
 import json
 import re
-from typing import Dict, List, Optional, Any
+from typing import Dict, List, Optional
 from .config import DataPaths
 
 # --- 游戏数据加载器 ---
@@ -18,16 +18,6 @@ class GameDataLoader:
             return json.load(f)
     
     @staticmethod
-    def load_character_info() -> Optional[Dict]:
-        """加载角色信息"""
-        if DataPaths.CHARACTER_INFO_FILE.exists():
-            with open(DataPaths.CHARACTER_INFO_FILE, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        
-        print(f"ℹ️  未找到角色存档文件 (新游戏): {DataPaths.CHARACTER_INFO_FILE}")
-        return None
-    
-    @staticmethod
     def load_story() -> Optional[str]:
         """加载剧情脚本"""
         if not DataPaths.STORY_FILE.exists():
@@ -37,40 +27,15 @@ class GameDataLoader:
         with open(DataPaths.STORY_FILE, 'r', encoding='utf-8') as f:
             return f.read()
 
-    @staticmethod
-    def load_relationship_story(char_id: str, level: int) -> Optional[str]:
-        """加载角色关系剧情"""
-        file_path = DataPaths.DATA_DIR / "stories" / f"{char_id}_level_{level}.txt"
-        if not file_path.exists():
-            print(f"⚠️ 未找到关系剧情文件: {file_path}")
-            return None
-        
-        with open(file_path, 'r', encoding='utf-8') as f:
-            return f.read()
-
 
 # --- 剧情脚本解析器 ---
 class StoryParser:
     """解析 AI 生成的剧情脚本"""
     
     @staticmethod
-    def parse_script(script_text: str) -> List[Dict]:
-        """解析简单的剧情脚本（不包含 Group/Block 结构）"""
-        lines = []
-        for line in script_text.strip().split('\n'):
-            line = line.strip()
-            if not line or line.startswith('这里为您生成') or line.startswith('=== End'):
-                continue
-            
-            parsed = StoryParser._parse_line(line)
-            if parsed:
-                lines.append(parsed)
-        return lines
-
-    @staticmethod
     def parse_story(story_text: str) -> Dict[str, List[Dict]]:
         """
-        解析剧情文本为结构化数据 (Tree-based)
+        解析剧情文本为结构化数据 (DAG-based)
         
         返回格式:
         {
@@ -117,11 +82,10 @@ class StoryParser:
     @staticmethod
     def _parse_line(line: str) -> Optional[Dict]:
         """解析单行剧情"""
-        # ## [场景名]
-        # 兼容两种格式: "## [场景名]" 和 "## 场景名"
-        scene_match = re.match(r'##\s*\[?(.+?)\]?$', line)
-        if scene_match:
-            return {"type": "scene", "value": scene_match.group(1).strip()}
+        # <scene>场景名</scene>
+        scene_tag_match = re.match(r'<scene>(.+?)</scene>', line)
+        if scene_tag_match:
+            return {"type": "scene", "value": scene_tag_match.group(1).strip()}
 
         # [IF: Role >= Level]
         if_match = re.match(r'\[IF: (.+?) >= (\d+)\]', line)
@@ -140,21 +104,24 @@ class StoryParser:
         if line == '[ENDIF]':
             return {"type": "endif"}
 
-        # [IMAGE: xxx]
-        image_match = re.match(r'\[IMAGE: (.+?)\]', line)
+        # <image id="角色名">表情</image>
+        image_match = re.match(r'<image\s+id="([^"]+)">([^<]+)</image>', line)
         if image_match:
-            return {"type": "image", "value": image_match.group(1)}
+            char_name = image_match.group(1)
+            expression = image_match.group(2).strip()
+            return {"type": "image", "value": f"{char_name}-{expression}"}
         
-        # 旁白: xxx (中文) 或 NARRATOR: xxx (英文，兼容)
-        if line.startswith('旁白:') or line.startswith('NARRATOR:'):
-            prefix_len = 3 if line.startswith('旁白:') else 9
-            return {"type": "narrator", "text": line[prefix_len:].strip()}
-        
-        # 主角: xxx (中文) 或 PROTAGONIST: xxx (英文，兼容)
-        if line.startswith('主角:') or line.startswith('PROTAGONIST:'):
-            prefix_len = 3 if line.startswith('主角:') else 12
-            text = line[prefix_len:].strip()
-            return {"type": "dialogue", "speaker": "主角", "text": text, "emotion": "neutral"}
+        # <content id="xxx">内容</content> (统一格式，包括旁白和对话)
+        content_match = re.match(r'<content\s+id="([^"]+)">([^<]+)</content>', line)
+        if content_match:
+            speaker = content_match.group(1).strip()
+            text = content_match.group(2).strip()
+            
+            # 旁白特殊处理
+            if speaker == "旁白":
+                return {"type": "narrator", "text": text}
+            else:
+                return {"type": "dialogue", "speaker": speaker, "text": text, "emotion": "neutral"}
         
         # [JUMP: node_id]
         jump_match = re.match(r'\[JUMP: (.+?)\]', line)
@@ -165,48 +132,15 @@ class StoryParser:
         if line == '[CHOICE]':
             return {"type": "choice_start"}
         
-        # 选项 (格式: 1. Option Text [JUMP: node_id])
-        # 兼容格式: "1. 选项文字 [JUMP: node_id]" 和 "1. 选项文字"
-        # 使用更宽松的正则，允许 [JUMP] 部分可选，防止解析失败
-        choice_match = re.match(r'(\d+)\.\s*(.+?)(?:\s*\[JUMP:\s*(.+?)\])?$', line)
-        if choice_match:
-            text = choice_match.group(2).strip()
-            target = choice_match.group(3).strip() if choice_match.group(3) else None
-            
-            #以此防止 [JUMP 被包含在 text 中 (如果正则贪婪匹配了)
-            if '[JUMP' in text:
-                text = text.split('[JUMP')[0].strip()
-                
+        # <choice target="node_id">选项文本</choice>
+        xml_choice_match = re.match(r'<choice\s+target="([^"]+)">(.+?)</choice>', line)
+        if xml_choice_match:
             return {
                 "type": "choice_option",
-                "index": int(choice_match.group(1)),
-                "text": text,
-                "target": target
+                "index": None,
+                "text": xml_choice_match.group(2).strip(),
+                "target": xml_choice_match.group(1).strip()
             }
         
-        # 旧格式兼容: 选项N: xxx → [效果]
-        old_choice_match = re.match(r'选项(\d+): (.+?) → \[(.+?)\]', line)
-        if old_choice_match:
-             return {
-                "type": "choice_option",
-                "index": int(old_choice_match.group(1)),
-                "text": old_choice_match.group(2),
-                "effect": old_choice_match.group(3) # Legacy effect
-            }
-
-        # 其他角色对话 - 支持中文和英文
-        # 中文格式: 小日向夏海: "对话"
-        # 英文格式: CHARACTER_A: "对话" (兼容)
-        dialogue_match = re.match(r'([^:：]+)[：:]\s*(.+)', line)
-        if dialogue_match:
-            speaker = dialogue_match.group(1).strip()
-            text = dialogue_match.group(2).strip()
-            # 过滤掉一些特殊情况（如选项文字中的冒号）
-            if speaker and not speaker.startswith('选项') and len(speaker) < 20:
-                return {"type": "dialogue", "speaker": speaker, "text": text, "emotion": "neutral"}
-        
-        # SOUND_EFFECT
-        if line.startswith('SOUND_EFFECT:'):
-            return {"type": "sound", "value": line[13:].strip()}
-        
+        # Unknown line type
         return None

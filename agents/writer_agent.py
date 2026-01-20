@@ -33,166 +33,152 @@ class WriterAgent:
         
         logger.info("✅ 编剧 Agent 初始化成功")
     
-    def generate_node_story(
+    def split_node_into_plots(
         self,
-        node_id: str,
-        node_info: Dict[str, Any],
-        game_design: Dict[str, Any],
-        previous_story_summary: str = "",
-        critique_feedback: str = "无"
-    ) -> str:
-        """
-        生成指定剧情节点的详细剧情
+        node_summary: str,
+        long_term_memory: str,
+        available_scenes: List[str] = [],
+        available_characters: List[Dict[str, Any]] = [],
+        segment_count: int = 3
+    ) -> List[Dict[str, Any]]:
+        """将节点概要切分为剧情片段"""
+        logger.info(f"✂️  正在切分剧情片段 (目标片段数: {segment_count})...")
         
-        Args:
-            node_id: 节点ID
-            node_info: 节点信息 (包含 summary, children 等)
-            game_design: 游戏设计文档
-            previous_story_summary: 前情提要
-            critique_feedback: 演员反馈意见
-            
-        Returns:
-            本节点剧情文本
-        """
-        logger.info(f"✍️  开始生成节点 【{node_id}】 剧情")
+        # 根据 segment_count 生成不同的指令
+        if segment_count == 1:
+            split_instruction = "保持为一个完整的场景，不要切分。"
+        else:
+            split_instruction = f"每个片段应该是一个小的场景或事件，具有明确的冲突或行动。"
         
-        try:
-            # 获取节点概要
-            node_summary = node_info.get('summary', '剧情发展')
-            parent_id = node_info.get('parent')
-            
-            # 获取父节点摘要 (如果需要，可以从 game_design 中查找)
-            parent_summary = "无"
-            if parent_id and 'story_tree' in game_design:
-                parent_node = game_design['story_tree'].get(parent_id)
-                if parent_node:
-                    parent_summary = parent_node.get('summary', '无')
+        scenes_str = ", ".join(available_scenes) if available_scenes else "未指定，请根据剧情自由选择"
+        # 构建角色的详细信息
+        characters_info = "\n".join([
+            f"- {char.get('name', 'Unknown')}（{char.get('gender', '')},{char.get('personality', '')}）：{char.get('appearance', '')}。背景：{char.get('background', '')[:80]}..."
+            for char in available_characters
+        ]) if available_characters else "未指定角色"
 
-            # 获取子节点列表
-            children_ids = node_info.get('children', [])
-            children_nodes_str = ", ".join(children_ids) if children_ids else "无 (结局)"
+        prompt = self.config.PLOT_SPLIT_PROMPT.format(
+            segment_count=segment_count,
+            split_instruction=split_instruction,
+            node_summary=node_summary,
+            previous_story_summary=long_term_memory,
+            available_scenes=scenes_str,
+            available_characters=characters_info
+        )
+        try:
+            # 使用专门的 System Prompt 以确保 JSON 格式
+            system_prompt = "你是一个剧情结构分析助手。你的任务是将剧情概要切分为结构化的片段，并严格输出 JSON 格式。"
             
-            # 获取可用场景列表
-            available_scenes = self._format_scenes(game_design.get('scenes', []))
-            
-            # 获取可用表情列表
-            available_expressions = ", ".join(ArtistConfig.STANDARD_EXPRESSIONS)
-            
-            # 构建提示词
-            prompt = self.config.NODE_GENERATION_PROMPT.format(
-                node_id=node_id,
-                game_design=self._format_game_design(game_design),
-                node_summary=node_summary,
-                parent_summary=parent_summary,
-                children_nodes=children_nodes_str,
-                available_scenes=available_scenes,
-                available_expressions=available_expressions,
-                previous_story_summary=previous_story_summary,
-                critique_feedback=critique_feedback,
-                child_1_id=children_ids[0] if len(children_ids) > 0 else "无",
-                child_2_id=children_ids[1] if len(children_ids) > 1 else "无"
+            response = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.7
             )
-            
-            # 调用 LLM
-            story_content = self.llm_client.chat_completion(
+            return JSONParser.parse_ai_response(response)
+        except Exception as e:
+            logger.error(f"❌ 切分剧情失败: {e}")
+            return []
+
+    def synthesize_script(
+        self,
+        plot_performances: List[Dict[str, Any]],
+        choices: List[Dict[str, Any]] = [],
+        story_context: str = "",
+        available_scenes: List[str] = [],
+        available_characters: List[Dict[str, Any]] = []
+    ) -> str:
+        """将演员表演整合成剧本"""
+        logger.info("🧩 正在整合剧本 (基于结构化数据)...")
+        
+        # 将结构化数据转换为 JSON 字符串供 LLM 阅读
+        performances_json = json.dumps(plot_performances, ensure_ascii=False, indent=2)
+        choices_json = json.dumps(choices, ensure_ascii=False, indent=2)
+        scenes_str = ", ".join(available_scenes) if available_scenes else "未指定"
+        # 构建角色的详细信息
+        characters_info = "\n".join([
+            f"- {char.get('name', 'Unknown')}（{char.get('gender', '')},{char.get('personality', '')}）：{char.get('appearance', '')}。背景：{char.get('background', '')[:80]}..."
+            for char in available_characters
+        ]) if available_characters else "未指定"
+        
+        prompt = self.config.PLOT_SYNTHESIS_PROMPT.format(
+            plot_performances=performances_json,
+            choices=choices_json,
+            story_context=story_context,
+            available_scenes=scenes_str,
+            available_characters=characters_info
+        )
+        try:
+            return self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": self.config.SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=self.config.TEMPERATURE
+                temperature=0.7
             )
-            
-            return story_content
-            
         except Exception as e:
-            logger.error(f"❌ 生成剧情失败: {str(e)}")
-            raise
+            logger.error(f"❌ 整合剧本失败: {e}")
+            return str(plot_performances)
 
-    # generate_relationship_story 已移除
-    # update_character_states 已移除
-            
-        except Exception as e:
-            logger.error(f"❌ 角色状态更新失败: {e}")
-            # 发生错误时返回简单更新的状态
-            return self._apply_choice_effects(current_states, choice_effects)
-    
-    def _apply_choice_effects(
+    def decide_next_speaker(
         self,
-        states: Dict[str, Any],
-        effects: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        plot_summary: str,
+        characters: List[Dict[str, Any]],
+        story_context: str
+    ) -> tuple[str, str]:
         """
-        应用选择效果到角色状态
+        决定下一位发言的角色及剧情指导
         
-        Args:
-            states: 当前状态
-            effects: 效果字典
-            
         Returns:
-            更新后的状态
+            (角色名, 剧情指导) 或 ("STOP", "")
         """
-        import copy
-        new_states = copy.deepcopy(states)
+        # 构建角色的详细信息
+        characters_info = "\n".join([
+            f"- {char.get('name', 'Unknown')}（{char.get('gender', '')},{char.get('personality', '')}）：{char.get('appearance', '')}。背景：{char.get('background', '')[:80]}..."
+            for char in characters
+        ])
         
-        for char_name, change in effects.items():
-            if char_name == "money":
-                # 金钱变化（在游戏主状态中处理）
-                continue
+        prompt = self.config.NEXT_SPEAKER_PROMPT.format(
+            plot_summary=plot_summary,
+            characters=characters_info,
+            story_context=story_context
+        )
+        try:
+            response = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": "你是一个辅助剧情生成的导演助手。"},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3 # 低温度以获得更确定的结果
+            )
+            response = response.strip()
             
-            if char_name in new_states:
-                char_state = new_states[char_name]
-                
-                # 好感度变化
-                if isinstance(change, (int, float)):
-                    affection = char_state.get('affection', 0)
-                    new_affection = max(0, min(100, affection + change))
-                    char_state['affection'] = new_affection
-                    
-                    # 更新关系等级
-                    char_state['relationship_level'] = self._get_relationship_level(new_affection)
-        
-        return new_states
-    
-    def _get_relationship_level(self, affection: int) -> str:
-        """根据好感度获取关系等级"""
-        for level, (min_aff, max_aff) in self.config.AFFECTION_THRESHOLDS.items():
-            if min_aff <= affection < max_aff:
-                return level
-        return "lover" if affection >= 80 else "stranger"
-    
-    def _format_game_design(self, game_design: Dict[str, Any]) -> str:
-        """格式化游戏设计文档为摘要文本"""
-        summary = f"""
-【游戏标题】{game_design.get('title', 'Unknown')}
-
-【背景故事】
-{game_design.get('background', '')}
-
-【角色设定】
-"""
-        for char in game_design.get('characters', []):
-            summary += f"- {char.get('name', 'Unknown')}: {char.get('personality', '')}\n"
-        
-        return summary
-    
-    def _format_scenes(self, scenes: List[Dict[str, Any]]) -> str:
-        """格式化场景列表"""
-        if not scenes:
-            return "未定义场景，可以自由创作"
-        
-        scene_list = []
-        for scene in scenes:
-            scene_name = scene.get('name', 'Unknown')
-            scene_desc = scene.get('description', '')
-            scene_list.append(f"- {scene_name}: {scene_desc}")
-        
-        return "\n".join(scene_list)
-    
-    def _get_recent_story(self, story: str, max_chars: int = 2000) -> str:
-        """获取最近的剧情片段"""
-        if len(story) <= max_chars:
-            return story
-        return "...\n" + story[-max_chars:]
+            # 解析响应
+            import re
+            
+            # 提取 <character> 标签
+            char_match = re.search(r'<character>(.+?)</character>', response, re.DOTALL)
+            if not char_match:
+                logger.warning("⚠️ 导演返回格式错误，未找到 <character> 标签")
+                return "STOP", ""
+            
+            speaker = char_match.group(1).strip()
+            
+            # 检查是否是 STOP
+            if speaker.upper() == "STOP":
+                return "STOP", ""
+            
+            # 提取 <advice> 标签
+            advice_match = re.search(r'<advice>(.+?)</advice>', response, re.DOTALL)
+            guidance = advice_match.group(1).strip() if advice_match else ""
+            
+            logger.debug(f"🎬 解析结果: 角色={speaker}, 指导={guidance}")
+            return speaker, guidance
+            
+        except Exception as e:
+            logger.error(f"❌ 决定下一位发言者失败: {e}")
+            return "STOP", ""
     
     def append_story(self, story_text: str) -> None:
         """
@@ -226,58 +212,7 @@ class WriterAgent:
             logger.error(f"❌ 加载剧情文件失败: {e}")
             return ""
     
-    def save_character_states(self, states: Dict[str, Any]) -> None:
-        """
-        保存角色状态到character_info.json
-        
-        Args:
-            states: 角色状态字典
-        """
-        if not FileHelper.safe_write_json(PathConfig.CHARACTER_INFO_FILE, states):
-            raise Exception("保存角色状态失败")
-    
-    @staticmethod
-    def load_character_states() -> Dict[str, Any]:
-        """
-        加载角色状态
-        
-        Returns:
-            角色状态字典
-        """
-        states = FileHelper.safe_read_json(PathConfig.CHARACTER_INFO_FILE)
-        if states:
-            logger.info(f"📖 角色状态已加载: {len(states)} 个角色")
-            return states
-        return {}
-    
-    @staticmethod
-    def initialize_character_states(game_design: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        根据游戏设计初始化角色状态
-        
-        Args:
-            game_design: 游戏设计文档
-            
-        Returns:
-            初始化的角色状态
-        """
-        logger.info("🎬 初始化角色状态")
-        
-        states = {}
-        
-        for char in game_design.get('characters', []):
-            char_name = char.get('name')
-            states[char_name] = {
-                "affection": 0,
-                "relationship_level": "stranger",
-                "story_flags": [],
-                "special_events": [],
-                "met": False
-            }
-        
-        logger.info(f"✅ 已初始化 {len(states)} 个角色状态")
-        
-        return states
+
     
     def parse_story_for_ui(self, story_text: str) -> List[Dict[str, Any]]:
         """
@@ -328,18 +263,11 @@ class WriterAgent:
                 current_location = new_location
                 continue
             
-            # 解析图像标注 ([IMAGE: 角色] 或 [IMAGE: 角色-表情])
-            image_match = re.match(r'\[IMAGE:\s*(.+?)\]', line)
+            # 解析图像标注 <image id="角色">表情</image>
+            image_match = re.match(r'<image\s+id="([^"]+)">([^<]+)</image>', line)
             if image_match:
-                content = image_match.group(1).strip()
-                if '-' in content:
-                    character, expression = content.split('-', 1)
-                else:
-                    character = content
-                    expression = "neutral" # 默认表情
-                
-                character = character.strip()
-                expression = expression.strip()
+                character = image_match.group(1).strip()
+                expression = image_match.group(2).strip()
                 
                 segments.append({
                     "type": "image",
@@ -394,44 +322,6 @@ class WriterAgent:
         logger.info(f"✅ 解析完成: {len(segments)} 个片段")
         return segments
     
-    def _parse_choice_effects(self, effects_str: str) -> Dict[str, Any]:
-        """
-        解析选项效果字符串
-        
-        Args:
-            effects_str: 效果字符串，如 "角色A好感度+5, 金钱-10"
-            
-        Returns:
-            效果字典
-        """
-        effects = {}
-        
-        # 分割多个效果
-        parts = effects_str.split(',')
-        
-        for part in parts:
-            part = part.strip()
-            
-            if not part or part == "无影响":
-                continue
-            
-            # 匹配 "角色名好感度+/-数字"
-            affection_match = re.match(r'(.+?)好感度([+\-]\d+)', part)
-            if affection_match:
-                char_name = affection_match.group(1).strip()
-                change = int(affection_match.group(2))
-                effects[char_name] = change
-                continue
-            
-            # 匹配 "金钱+/-数字"
-            money_match = re.match(r'金钱([+\-]\d+)', part)
-            if money_match:
-                change = int(money_match.group(1))
-                effects['money'] = change
-                continue
-        
-        return effects
-    
     def summarize_story(self, story_content: str) -> str:
         """
         生成剧情摘要
@@ -460,55 +350,3 @@ class WriterAgent:
         except Exception as e:
             logger.error(f"❌ 摘要生成失败: {str(e)}")
             return story_content[-500:]  # 失败时回退到截取最后一段
-
-
-# ==================== 测试代码 ====================
-if __name__ == "__main__":
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-    
-    # 测试编剧 Agent
-    try:
-        writer = WriterAgent()
-        
-        # 测试游戏设计
-        test_design = {
-            "title": "测试游戏",
-            "background": "一个普通的校园故事",
-            "outline": {
-                "week_1": "主角初次遇见女主角，开始校园生活"
-            },
-            "characters": [
-                {
-                    "name": "樱",
-                    "personality": "温柔善良",
-                    "id": "sakura"
-                }
-            ]
-        }
-        
-        # 初始化角色状态
-        char_states = writer.initialize_character_states(test_design)
-        writer.save_character_states(char_states)
-        
-        print("\n" + "="*50)
-        print("✍️  测试剧情生成")
-        print("="*50)
-        
-        # 生成第一周剧情
-        story = writer.generate_weekly_story(
-            week=1,
-            game_design=test_design,
-            character_states=char_states
-        )
-        
-        print(f"\n✅ 剧情生成成功！")
-        print(f"   长度: {len(story)} 字符")
-        print(f"\n前200字符预览:")
-        print(story[:200] + "...")
-        
-    except Exception as e:
-        print(f"\n❌ 测试失败: {e}")

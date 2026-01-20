@@ -106,9 +106,26 @@ class JSONParser:
         # 2. 移除 BOM 标记和首尾空白
         content = content.strip('\ufeff').strip()
         
-        # 3. 提取 JSON 对象（从第一个 { 到最后一个 }）
-        # 改进：处理 Extra data 问题，尝试找到正确的结束位置
-        start = content.find('{')
+        # 3. 提取 JSON 对象或数组
+        start_obj = content.find('{')
+        start_arr = content.find('[')
+        
+        # 确定是对象还是数组（取最靠前的一个）
+        is_object = False
+        if start_obj != -1 and (start_arr == -1 or start_obj < start_arr):
+            start = start_obj
+            open_char = '{'
+            close_char = '}'
+            is_object = True
+        elif start_arr != -1:
+            start = start_arr
+            open_char = '['
+            close_char = ']'
+            is_object = False
+        else:
+            # 既没找到 { 也没找到 [，直接返回
+            return content
+
         if start != -1:
             # 简单的括号计数法来找到匹配的结束括号
             count = 0
@@ -132,9 +149,9 @@ class JSONParser:
                     continue
                 
                 if not in_string:
-                    if char == '{':
+                    if char == open_char:
                         count += 1
-                    elif char == '}':
+                    elif char == close_char:
                         count -= 1
                         if count == 0:
                             end = i
@@ -144,7 +161,7 @@ class JSONParser:
                 content = content[start:end+1]
             else:
                 # 如果计数法失败，回退到简单的 rfind
-                end = content.rfind('}')
+                end = content.rfind(close_char)
                 if end != -1 and start < end:
                     content = content[start:end+1]
         
@@ -319,45 +336,6 @@ class FileHelper:
             return False
 
 
-class RetryHelper:
-    """重试助手"""
-    
-    @staticmethod
-    def retry_on_failure(func, max_retries: int = 3, delay: float = 2.0, *args, **kwargs):
-        """
-        失败时自动重试
-        
-        Args:
-            func: 要执行的函数
-            max_retries: 最大重试次数
-            delay: 重试间隔（秒）
-            *args, **kwargs: 传递给函数的参数
-            
-        Returns:
-            函数执行结果
-            
-        Raises:
-            最后一次尝试的异常
-        """
-        import time
-        
-        last_exception = None
-        
-        for attempt in range(max_retries):
-            try:
-                return func(*args, **kwargs)
-            except Exception as e:
-                last_exception = e
-                if attempt < max_retries - 1:
-                    logger.warning(f"⚠️  尝试 {attempt + 1}/{max_retries} 失败: {e}")
-                    logger.info(f"⏳ {delay} 秒后重试...")
-                    time.sleep(delay)
-                else:
-                    logger.error(f"❌ 所有尝试均失败")
-        
-        raise last_exception
-
-
 class TextProcessor:
     """文本处理工具"""
     
@@ -404,6 +382,5 @@ __all__ = [
     'JSONParser',
     'PromptBuilder',
     'FileHelper',
-    'RetryHelper',
     'TextProcessor'
 ]

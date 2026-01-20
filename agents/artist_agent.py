@@ -80,7 +80,9 @@ class ArtistAgent:
         character: Dict[str, Any],
         expressions: Optional[List[str]] = None,
         feedback: Optional[str] = None,
-        reference_image_path: Optional[str] = None
+        reference_image_paths: Optional[List[str]] = None,
+        story_background: Optional[str] = None,
+        art_style: Optional[str] = None
     ) -> Dict[str, str]:
         """
         为单个角色生成多表情立绘
@@ -89,7 +91,9 @@ class ArtistAgent:
             character: 角色设定字典
             expressions: 需要生成的表情列表，如果为None则使用默认列表
             feedback: 针对本次生成的修改建议 (会附加到 Prompt 中)
-            reference_image_path: 强制指定的参考图路径 (可选)
+            reference_image_paths: 强制指定的参考图路径列表 (可选)
+            story_background: 故事背景描述
+            art_style: 美术风格描述
             
         Returns:
             字典，键为表情名，值为图像文件路径
@@ -103,6 +107,8 @@ class ArtistAgent:
         logger.info(f"🎨 为角色 [{character_name}] 生成立绘，表情: {expressions}")
         if feedback:
             logger.info(f"   💡 包含修改建议: {feedback}")
+        if art_style:
+            logger.info(f"   🎨 美术风格: {art_style}")
         
         # 创建角色专属目录
         character_dir = os.path.join(PathConfig.CHARACTERS_DIR, character_id)
@@ -111,10 +117,10 @@ class ArtistAgent:
         image_paths = {}
         
         # 如果未指定参考图，尝试自动查找 neutral 表情
-        if not reference_image_path:
+        if not reference_image_paths:
             neutral_path = os.path.join(character_dir, "neutral.png")
             if os.path.exists(neutral_path):
-                reference_image_path = neutral_path
+                reference_image_paths = [neutral_path]
                 logger.info(f"   🔍 自动加载参考图: {neutral_path}")
         
         # 确保 neutral 最先生成 (如果它在列表中)
@@ -126,67 +132,86 @@ class ArtistAgent:
                 filename = f"{expression}.png"
                 expected_image_path = os.path.join(character_dir, filename)
                 
-                if os.path.exists(expected_image_path):
+                # 如果图片已存在，且没有反馈意见（不是在修正），则跳过
+                if os.path.exists(expected_image_path) and not feedback:
                     logger.info(f"   ✅ [{expression}] 立绘已存在，跳过生成")
                     image_paths[expression] = expected_image_path
                     if expression == 'neutral':
-                        reference_image_path = expected_image_path
+                        reference_image_paths = [expected_image_path]
                     continue
+                
+                if feedback and os.path.exists(expected_image_path):
+                    logger.info(f"   🔄 [{expression}] 立绘已存在，但收到反馈意见，正在重新生成...")
                 
                 # 生成图像
                 image_path = self._generate_single_image(
                     character=character,
                     expression=expression,
                     output_dir=character_dir,
-                    reference_image_path=reference_image_path,
-                    feedback=feedback
+                    reference_image_paths=reference_image_paths,
+                    feedback=feedback,
+                    story_background=story_background,
+                    art_style=art_style
                 )
                 
                 if image_path:
                     image_paths[expression] = image_path
                     logger.info(f"   ✅ [{expression}] 立绘生成成功")
                     if expression == 'neutral':
-                        reference_image_path = image_path
+                        reference_image_paths = [image_path]
                 else:
                     logger.warning(f"   ⚠️  [{expression}] 立绘生成失败")
                     
             except Exception as e:
                 logger.error(f"   ❌ [{expression}] 立绘生成出错: {e}")
         
-        # 不再生成 manifest.json
-        # self._save_image_manifest(character_id, image_paths)
-        
         logger.info(f"✅ 角色 [{character_name}] 立绘生成完成，共 {len(image_paths)} 张")
         
         return image_paths
 
-    def _build_prompt(self, character: Dict[str, Any], expression_type: str, description: Optional[str] = None, feedback: Optional[str] = None) -> str:
+    def _build_prompt(
+        self, 
+        character: Dict[str, Any], 
+        expression_type: str, 
+        description: Optional[str] = None, 
+        feedback: Optional[str] = None,
+        story_background: Optional[str] = None,
+        art_style: Optional[str] = None
+    ) -> str:
         """构建图像生成提示词"""
         appearance = character.get('appearance', 'anime style character')
         personality = character.get('personality', 'Unknown')
         
-        if feedback:
-            appearance += f" (Correction: {feedback})"
-        
+        # 构建基础 prompt
         if expression_type == "custom" and description:
-            # 自定义描述模式 - 使用与标准表情相同的模板以保持风格一致
-            # 将详细描述作为 expression 传入
-            return self.config.IMAGE_PROMPT_TEMPLATE.format(
+            # 自定义描述模式
+            base_prompt = self.config.IMAGE_PROMPT_TEMPLATE.format(
+                story_background=story_background or "A visual novel game",
+                art_style=art_style or "Japanese anime style",
                 appearance=appearance,
                 personality=personality,
                 expression=description
             )
         else:
             # 标准表情模式
-            return self.config.IMAGE_PROMPT_TEMPLATE.format(
+            base_prompt = self.config.IMAGE_PROMPT_TEMPLATE.format(
+                story_background=story_background or "A visual novel game",
+                art_style=art_style or "Japanese anime style",
                 appearance=appearance,
                 personality=personality,
                 expression=expression_type
             )
+        
+        # 如果有 feedback，作为重要的修正指令追加到 prompt 最后
+        if feedback:
+            base_prompt += f"\n\n⚠️ IMPORTANT CORRECTIONS FROM CHARACTER REVIEW:\n{feedback}\n\nSTRICT REQUIREMENT: Maintain absolute visual consistency with the character's original facial features, hair, clothing, and art style while applying the above corrections."
+        
+        return base_prompt
 
-    def _call_image_api(self, prompt: str, reference_image_path: Optional[str] = None) -> Optional[bytes]:
+    def _call_image_api(self, prompt: str, reference_image_paths: Optional[List[str]] = None) -> Optional[bytes]:
         """调用图像生成 API"""
         if self.provider == "openai":
+            # DALL-E 3 并不直接支持图像参考，这里可以考虑将参考图描述加入 prompt (目前维持原样)
             response = self.client.images.generate(
                 model=APIConfig.IMAGE_MODEL,
                 prompt=prompt,
@@ -201,13 +226,18 @@ class ArtistAgent:
             
         elif self.provider == "google":
             contents = [prompt]
-            if reference_image_path:
-                try:
-                    ref_img = Image.open(reference_image_path)
-                    contents.append(ref_img)
-                    contents[0] = f"Generate a variation of the character in the attached image: {prompt}"
-                except Exception as e:
-                    logger.warning(f"   ⚠️ 无法加载参考图: {e}")
+            if reference_image_paths:
+                for path in reference_image_paths:
+                    if not path or not os.path.exists(path):
+                        continue
+                    try:
+                        ref_img = Image.open(path)
+                        contents.append(ref_img)
+                    except Exception as e:
+                        logger.warning(f"   ⚠️ 无法加载参考图 [{path}]: {e}")
+                
+                if len(contents) > 1:
+                    contents[0] = f"Generate a variation of the character in the attached images, maintaining visual consistency: {prompt}"
             
             response = self.client.models.generate_content(
                 model=APIConfig.IMAGE_MODEL,
@@ -236,6 +266,60 @@ class ArtistAgent:
         with open(filepath, 'wb') as f:
             f.write(image_data)
         logger.info(f"   ✅ 图像保存成功: {filepath}")
+    
+    def _download_and_save_image(self, image_url: str, file_path: str) -> bool:
+        """
+        从URL下载图片并保存到文件
+        
+        Args:
+            image_url: 图片URL
+            file_path: 保存路径
+            
+        Returns:
+            成功返回True，失败返回False
+        """
+        try:
+            response = requests.get(image_url)
+            if response.status_code == 200:
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
+                logger.info(f"   ✅ 图片保存成功: {file_path}")
+                return True
+            else:
+                logger.error(f"   ❌ 图片下载失败: HTTP {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"   ❌ 下载图片时出错: {e}")
+            return False
+    
+    def _save_google_image_response(self, response, file_path: str) -> bool:
+        """
+        保存Google API返回的图片
+        
+        Args:
+            response: Google API响应对象
+            file_path: 保存路径
+            
+        Returns:
+            成功返回True，失败返回False
+        """
+        if not hasattr(response, 'parts'):
+            return False
+            
+        for part in response.parts:
+            if part.text is not None:
+                logger.warning(f"   ⚠️ API返回文本: {part.text}")
+            
+            if hasattr(part, 'inline_data') and part.inline_data:
+                try:
+                    image = part.as_image()
+                    image.save(file_path)
+                    logger.info(f"   ✅ 图片保存成功: {file_path}")
+                    return True
+                except Exception as e:
+                    logger.error(f"   ❌ 保存图像失败: {e}")
+        
+        return False
 
     def _remove_background(self, filepath: Path) -> None:
         """移除背景"""
@@ -268,19 +352,29 @@ class ArtistAgent:
         character: Dict[str, Any],
         expression: str,
         output_dir: str,
-        reference_image_path: Optional[str] = None,
-        feedback: Optional[str] = None
+        reference_image_paths: Optional[List[str]] = None,
+        feedback: Optional[str] = None,
+        story_background: Optional[str] = None,
+        art_style: Optional[str] = None
     ) -> Optional[str]:
         """生成单张立绘"""
         if not self.available: return None
         
         try:
             name = character.get('name', 'Character')
-            prompt = self._build_prompt(character, expression, feedback=feedback)
+            prompt = self._build_prompt(
+                character, 
+                expression, 
+                feedback=feedback,
+                story_background=story_background,
+                art_style=art_style
+            )
             
             logger.info(f"   🎨 为 [{name}] 生成立绘 ({expression})...")
             
-            image_data = self._call_image_api(prompt, reference_image_path if expression != 'neutral' else None)
+            # 使用参考图（如果提供）
+            # 注意：不再排除 neutral，因为其他角色的 neutral 可能需要参考主角
+            image_data = self._call_image_api(prompt, reference_image_paths)
             
             if image_data:
                 filename = f"{expression}.png"
@@ -297,45 +391,13 @@ class ArtistAgent:
             logger.error(f"❌ 图像生成失败: {e}")
             return None
     
-    @staticmethod
-    def load_character_images(character_id: str) -> Optional[Dict[str, str]]:
-        """
-        加载角色的图像清单 (扫描目录)
-        
-        Args:
-            character_id: 角色ID
-            
-        Returns:
-            图像路径字典，失败返回 None
-        """
-        try:
-            character_dir = os.path.join(PathConfig.CHARACTERS_DIR, character_id)
-            if not os.path.exists(character_dir):
-                logger.warning(f"⚠️  角色目录不存在: {character_id}")
-                return None
-                
-            image_paths = {}
-            for filename in os.listdir(character_dir):
-                if filename.lower().endswith('.png'):
-                    expression = os.path.splitext(filename)[0]
-                    image_paths[expression] = os.path.join(character_dir, filename)
-            
-            logger.info(f"📖 加载角色图像: {character_id} ({len(image_paths)} 张)")
-            return image_paths
-            
-        except Exception as e:
-            logger.error(f"❌ 加载角色图像失败: {e}")
-            return None
-            return None
-        except Exception as e:
-            logger.error(f"❌ 加载图像清单失败: {e}")
-            return None
-    
     def generate_background(
         self,
         location: str,
         time_of_day: str = "",
-        atmosphere: str = "peaceful"
+        atmosphere: str = "peaceful",
+        story_background: str = "",
+        art_style: str = ""
     ) -> Optional[str]:
         """
         生成场景背景图
@@ -344,6 +406,8 @@ class ArtistAgent:
             location: 场景地点（如"教室"、"公园"等）
             time_of_day: 时间段（可选，如"morning", "afternoon"）
             atmosphere: 氛围（如"peaceful", "romantic", "tense"等）
+            story_background: 故事背景说明
+            art_style: 美术风格指南
             
         Returns:
             背景图片文件路径，失败返回 None
@@ -376,70 +440,36 @@ class ArtistAgent:
             prompt = self.config.BACKGROUND_PROMPT_TEMPLATE.format(
                 location=location,
                 time_of_day=time_of_day,
-                atmosphere=atmosphere
+                atmosphere=atmosphere,
+                story_background=story_background,
+                art_style=art_style
             )
             
             logger.info(f"   🎨 生成背景: {location}...")
             logger.debug(f"   提示词: {prompt[:150]}...")
             
             if self.provider == "openai":
-                # 调用 DALL-E API
                 response = self.client.images.generate(
                     model=APIConfig.IMAGE_MODEL,
                     prompt=prompt,
                     size=self.config.BACKGROUND_SIZE,
                     quality=self.config.BACKGROUND_QUALITY,
-                    style=self.config.IMAGE_STYLE,  # 使用与角色相同的风格
+                    style=self.config.IMAGE_STYLE,
                     n=1
                 )
                 
-                # 获取图像 URL
                 image_url = response.data[0].url
-                
-                # 下载图像
-                logger.info(f"   ⬇️  下载背景图...")
-                import requests
-                image_response = requests.get(image_url)
-                
-                if image_response.status_code == 200:
-                    with open(file_path, 'wb') as f:
-                        f.write(image_response.content)
-                    logger.info(f"   ✅ 背景图保存成功: {file_path}")
+                if self._download_and_save_image(image_url, file_path):
                     return file_path
-                else:
-                    logger.error(f"   ❌ 背景图下载失败: HTTP {image_response.status_code}")
-                    return None
+                return None
 
             elif self.provider == "google":
-                # 使用 google-genai SDK
-                contents = [prompt]
-                
-                # 生成图像
                 response = self.client.models.generate_content(
                     model=APIConfig.IMAGE_MODEL,
-                    contents=contents
+                    contents=[prompt]
                 )
                 
-                image_saved = False
-                
-                if hasattr(response, 'parts'):
-                    for part in response.parts:
-                        if part.text is not None:
-                            logger.warning(f"   ⚠️ API返回文本: {part.text}")
-                        
-                        # 检查是否有 inline_data (图像数据)
-                        if hasattr(part, 'inline_data') and part.inline_data:
-                            try:
-                                # 使用官方示例中的 as_image()
-                                image = part.as_image()
-                                image.save(file_path)
-                                image_saved = True
-                                break
-                            except Exception as e:
-                                logger.error(f"   ❌ 保存图像失败: {e}")
-
-                if image_saved:
-                    logger.info(f"   ✅ 背景图保存成功: {file_path}")
+                if self._save_google_image_response(response, file_path):
                     return file_path
                 else:
                     raise ValueError("Google API 响应中未包含图像数据")
@@ -451,12 +481,14 @@ class ArtistAgent:
             logger.error(f"❌ 背景图生成失败: {e}")
             return None
     
-    def generate_all_backgrounds(self, locations: List[str]) -> Dict[str, str]:
+    def generate_all_backgrounds(self, locations: List[str], story_background: str = "", art_style: str = "") -> Dict[str, str]:
         """
         为游戏中的所有场景生成背景图
         
         Args:
             locations: 场景地点列表
+            story_background: 故事背景说明
+            art_style: 美术风格指南
             
         Returns:
             字典，键为地点名，值为背景图路径
@@ -473,7 +505,9 @@ class ArtistAgent:
                 bg_path = self.generate_background(
                     location=location,
                     time_of_day="",  # 不指定时间段，避免文件名带后缀
-                    atmosphere="peaceful"
+                    atmosphere="peaceful",
+                    story_background=story_background,
+                    art_style=art_style
                 )
                 if bg_path:
                     background_images[location] = bg_path
@@ -523,8 +557,6 @@ class ArtistAgent:
             logger.info(f"   🎨 生成标题画面...")
             
             if self.provider == "openai":
-                # OpenAI 暂不支持多图参考，仅使用 Prompt
-                import requests
                 response = self.client.images.generate(
                     model=APIConfig.IMAGE_MODEL,
                     prompt=prompt,
@@ -533,16 +565,11 @@ class ArtistAgent:
                     style=self.config.IMAGE_STYLE,
                     n=1
                 )
+                
                 image_url = response.data[0].url
-                image_response = requests.get(image_url)
-                if image_response.status_code == 200:
-                    with open(file_path, 'wb') as f:
-                        f.write(image_response.content)
-                    logger.info(f"   ✅ 标题画面保存成功: {file_path}")
+                if self._download_and_save_image(image_url, file_path):
                     return file_path
-                else:
-                    logger.error(f"   ❌ 标题画面下载失败: HTTP {image_response.status_code}")
-                    return None
+                return None
 
             elif self.provider == "google":
                 contents = [prompt]
@@ -563,19 +590,8 @@ class ArtistAgent:
                     model=APIConfig.IMAGE_MODEL,
                     contents=contents
                 )
-                image_saved = False
-                if hasattr(response, 'parts'):
-                    for part in response.parts:
-                        if hasattr(part, 'inline_data') and part.inline_data:
-                            try:
-                                image = part.as_image()
-                                image.save(file_path)
-                                image_saved = True
-                                break
-                            except Exception as e:
-                                logger.error(f"   ❌ 保存图像失败: {e}")
-                if image_saved:
-                    logger.info(f"   ✅ 标题画面保存成功: {file_path}")
+                
+                if self._save_google_image_response(response, file_path):
                     return file_path
                 else:
                     raise ValueError("Google API 响应中未包含图像数据")
@@ -585,39 +601,3 @@ class ArtistAgent:
         except Exception as e:
             logger.error(f"❌ 标题画面生成失败: {e}")
             return None
-    
-# ==================== 测试代码 ====================
-if __name__ == "__main__":
-    # 配置日志
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(levelname)s - %(message)s'
-    )
-    
-    # 测试美术 Agent
-    try:
-        artist = ArtistAgent()
-        
-        # 测试角色
-        test_character = {
-            "id": "test_char",
-            "name": "测试角色",
-            "personality": "开朗活泼",
-            "appearance": "长发，大眼睛，穿校服",
-            "color": [255, 105, 180],
-            "required_images": ["neutral", "happy", "shy"]
-        }
-        
-        print("\n" + "="*50)
-        print("🎨 开始生成测试角色立绘")
-        print("="*50)
-        
-        images = artist.generate_character_images(test_character)
-        
-        print(f"\n✅ 生成完成！")
-        print(f"   图像数量: {len(images)}")
-        for expr, path in images.items():
-            print(f"   - {expr}: {path}")
-        
-    except Exception as e:
-        print(f"\n❌ 测试失败: {e}")

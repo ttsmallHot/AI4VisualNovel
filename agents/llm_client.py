@@ -65,36 +65,86 @@ class LLMClient:
         self, 
         messages: List[Dict[str, str]], 
         temperature: float = 0.7, 
-        json_mode: bool = False
+        json_mode: bool = False,
+        max_retries: int = 3
     ) -> str:
         """
-        统一的聊天补全接口
+        统一的聊天补全接口（带重试机制）
         
         Args:
             messages: 消息列表 [{"role": "user", "content": "..."}, ...]
             temperature: 温度参数
             json_mode: 是否强制返回 JSON
+            max_retries: 最大重试次数
             
         Returns:
             生成的文本内容
         """
-        if self.provider == "openai":
-            return self._chat_openai(messages, temperature, json_mode)
-        elif self.provider == "google":
-            return self._chat_google(messages, temperature, json_mode)
-        else:
-            raise ValueError(f"不支持的 LLM 提供商: {self.provider}")
+        import time
+        
+        for attempt in range(max_retries):
+            try:
+                if self.provider == "openai":
+                    return self._chat_openai(messages, temperature, json_mode)
+                elif self.provider == "google":
+                    return self._chat_google(messages, temperature, json_mode)
+                else:
+                    raise ValueError(f"不支持的 LLM 提供商: {self.provider}")
+            except Exception as e:
+                if attempt < max_retries - 1:
+                    wait_time = 2 ** attempt  # 指数退避: 1s, 2s, 4s
+                    logger.warning(f"⚠️ LLM 调用失败 (尝试 {attempt + 1}/{max_retries}): {e}")
+                    logger.info(f"   ⏳ 等待 {wait_time} 秒后重试...")
+                    time.sleep(wait_time)
+                else:
+                    logger.error(f"❌ LLM 调用失败，已重试 {max_retries} 次: {e}")
+                    raise
 
-    def _chat_openai(self, messages: List[Dict[str, str]], temperature: float, json_mode: bool) -> str:
+    def _chat_openai(self, messages: List[Dict[str, Any]], temperature: float, json_mode: bool) -> str:
         if not self.client:
             raise ValueError("OpenAI 客户端未初始化")
+            
+        # 处理消息中的本地图片路径，转换为 Base64
+        import base64
+        import mimetypes
+        
+        processed_messages = []
+        for msg in messages:
+            new_msg = msg.copy()
+            if isinstance(msg.get("content"), list):
+                new_content = []
+                for item in msg["content"]:
+                    if item.get("type") == "image_url":
+                        url = item["image_url"]["url"]
+                        if os.path.exists(url):
+                            # 本地文件，转换为 Base64
+                            mime_type, _ = mimetypes.guess_type(url)
+                            if not mime_type: mime_type = "image/png"
+                            
+                            try:
+                                with open(url, "rb") as image_file:
+                                    encoded_string = base64.b64encode(image_file.read()).decode('utf-8')
+                                    new_item = item.copy()
+                                    new_item["image_url"] = {
+                                        "url": f"data:{mime_type};base64,{encoded_string}"
+                                    }
+                                    new_content.append(new_item)
+                            except Exception as e:
+                                logger.error(f"❌ 读取图片失败: {e}")
+                                new_content.append(item) # 保持原样，虽然可能会失败
+                        else:
+                            new_content.append(item)
+                    else:
+                        new_content.append(item)
+                new_msg["content"] = new_content
+            processed_messages.append(new_msg)
             
         response_format = {"type": "json_object"} if json_mode else None
         
         try:
             response = self.client.chat.completions.create(
                 model=APIConfig.MODEL,
-                messages=messages,
+                messages=processed_messages,
                 temperature=temperature,
                 response_format=response_format
             )
