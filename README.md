@@ -34,7 +34,7 @@ Follow these steps to set up your development environment:
 
 1.  **Clone the Repository**:
     ```bash
-    git clone https://github.com/your-repo/AI4VisualNovel.git
+    git clone https://github.com/ttsmallHot/AI4VisualNovel.git
     cd AI4VisualNovel
     ```
 
