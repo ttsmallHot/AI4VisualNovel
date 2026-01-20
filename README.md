@@ -7,7 +7,8 @@ Topological Branching Narrative Generation and Visual Synthesis in Visual
 Novel</b>
 </h3>
 
-`AI4VisualNovel` is an end-to-end framework specifically designed for **creating high-quality, multi-branch visual novels (VNs) via a role-play driven multi-agent system**.
+`AI4VisualNovel` is an end-to-end framework specifically designed for **creating high-quality, multi-branch visual novels via a role-play driven multi-agent system**.
+You only need to input your requirement, and the framework will generate the final game.
 
 Unlike prior approaches that focus on linear narrative generation or struggle with cross-modal consistency, `AI4VisualNovel` proposes a **Topological Sort-based DAG (Directed Acyclic Graph) mechanism** , which allows for **causally consistent** non-linear storytelling and complex plot branching management. This design makes `AI4VisualNovel` **highly robust for generating long-form, immersive interactive narratives** where player choices genuinely impact the story direction.
 
