@@ -27,13 +27,21 @@ class ProducerAgent:
         
         logger.info("✅ 制作人 Agent 初始化成功")
     
-    def critique_game_design(self, game_design: Dict[str, Any], user_requirements: str = "") -> str:
+    def critique_game_design(
+        self, 
+        game_design: Dict[str, Any], 
+        user_requirements: str = "",
+        expected_nodes: int = 12,
+        expected_characters: int = 3
+    ) -> str:
         """
         审核由策划草拟的游戏设计文档 (Feedback phase)
         
         Args:
             game_design: 策划提交的设计方案
             user_requirements: 用户原始要求
+            expected_nodes: 期望的节点总数
+            expected_characters: 期望的角色数量
             
         Returns:
             "PASS" 或 修改建议
@@ -43,7 +51,9 @@ class ProducerAgent:
         try:
             prompt = self.config.GAME_DESIGN_CRITIQUE_PROMPT.format(
                 game_design=json.dumps(game_design, ensure_ascii=False, indent=2),
-                user_requirements=user_requirements if user_requirements else "无特别要求"
+                user_requirements=user_requirements if user_requirements else "无特别要求",
+                expected_nodes=expected_nodes,
+                expected_characters=expected_characters
             )
             
             feedback = self.llm_client.chat_completion(

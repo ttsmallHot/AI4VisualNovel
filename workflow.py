@@ -70,7 +70,7 @@ class WorkflowController:
             self.designer = DesignerAgent(api_key=openai_api_key, base_url=openai_base_url)
             
             # 初始化美术 Agent
-            logger.info("   🎨 初始化美术 Agent (DALL-E)...")
+            logger.info("   🎨 初始化美术 Agent...")
             self.artist = ArtistAgent(api_key=openai_api_key, base_url=openai_base_url)
             
             # 初始化编剧 Agent
@@ -139,7 +139,12 @@ class WorkflowController:
                 
                 while current_iteration < max_iterations:
                     logger.info(f"   📋 制作人正在审核设计稿 (第 {current_iteration + 1} 轮)...")
-                    feedback = self.producer.critique_game_design(self.game_design, requirements)
+                    feedback = self.producer.critique_game_design(
+                        self.game_design, 
+                        requirements,
+                        expected_nodes=self.designer.config.TOTAL_NODES,
+                        expected_characters=character_count
+                    )
                     
                     if feedback == "PASS":
                         logger.info("   ✅ 制作人签署通过！")

@@ -5,7 +5,6 @@ import hashlib
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
-import requests
 from PIL import Image, ImageOps
 from rembg import remove, new_session
 
@@ -15,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class ArtistAgent:
-    """美术 Agent - 角色立绘生成器（支持 OpenAI DALL-E 和 Google Imagen）"""
+    """美术 Agent - 角色立绘生成器（支持 OpenAI GPT Image 和 Google Imagen）"""
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         """
@@ -47,7 +46,7 @@ class ArtistAgent:
                 try:
                     self.client = OpenAI(api_key=self.api_key, base_url=self.base_url)
                     self.available = True
-                    logger.info("✅ 美术 Agent 初始化成功 (OpenAI DALL-E)")
+                    logger.info("✅ 美术 Agent 初始化成功")
                 except Exception as e:
                     logger.error(f"❌ 美术 Agent 初始化失败: {e}")
                     
@@ -209,20 +208,47 @@ class ArtistAgent:
         return base_prompt
 
     def _call_image_api(self, prompt: str, reference_image_paths: Optional[List[str]] = None) -> Optional[bytes]:
-        """调用图像生成 API"""
+        """调用图像生成 API (使用 Responses API 给 OpenAI，使用 Models API 给 Google)"""
         if self.provider == "openai":
-            # DALL-E 3 并不直接支持图像参考，这里可以考虑将参考图描述加入 prompt (目前维持原样)
-            response = self.client.images.generate(
-                model=APIConfig.IMAGE_MODEL,
-                prompt=prompt,
-                size=self.config.IMAGE_SIZE,
-                quality=self.config.IMAGE_QUALITY,
-                style=self.config.IMAGE_STYLE,
-                n=1
-            )
-            image_url = response.data[0].url
-            resp = requests.get(image_url)
-            return resp.content if resp.status_code == 200 else None
+            try:
+                # 构建输入。如果有参考图，我们需要将其编码为 Base64 塞入 input 中
+                messages = [{"type": "input_text", "text": prompt}]
+                action = "generate"
+                
+                if reference_image_paths:
+                    for path in reference_image_paths:
+                        if os.path.exists(path):
+                            with open(path, "rb") as image_file:
+                                b64_data = base64.b64encode(image_file.read()).decode("utf-8")
+                                # 根据文档，使用 data URL 格式
+                                messages.append({
+                                    "type": "input_image",
+                                    "image_url": f"data:image/png;base64,{b64_data}"
+                                })
+                    if len(messages) > 1:
+                        action = "auto" # 有图片时让模型决定是编辑还是参考
+                
+                # 调用 Responses API
+                response = self.client.responses.create(
+                    model=APIConfig.IMAGE_MODEL,
+                    input=[{"role": "user", "content": messages}],
+                    tools=[{
+                        "type": "image_generation",
+                        "action": action,
+                        "size": self.config.IMAGE_SIZE,
+                        "input_fidelity": "high" if action == "auto" else "low"
+                    }]
+                )
+                
+                # 从响应中提取生成的图像 (Responses API 返回的是 base64)
+                for output in response.output:
+                    if output.type == "image_generation_call" and output.result:
+                        return base64.b64decode(output.result)
+                
+                return None
+            except Exception as e:
+                logger.error(f"❌ OpenAI Responses API 调用失败: {e}")
+                return None
             
         elif self.provider == "google":
             contents = [prompt]
@@ -267,59 +293,6 @@ class ArtistAgent:
             f.write(image_data)
         logger.info(f"   ✅ 图像保存成功: {filepath}")
     
-    def _download_and_save_image(self, image_url: str, file_path: str) -> bool:
-        """
-        从URL下载图片并保存到文件
-        
-        Args:
-            image_url: 图片URL
-            file_path: 保存路径
-            
-        Returns:
-            成功返回True，失败返回False
-        """
-        try:
-            response = requests.get(image_url)
-            if response.status_code == 200:
-                with open(file_path, 'wb') as f:
-                    f.write(response.content)
-                logger.info(f"   ✅ 图片保存成功: {file_path}")
-                return True
-            else:
-                logger.error(f"   ❌ 图片下载失败: HTTP {response.status_code}")
-                return False
-        except Exception as e:
-            logger.error(f"   ❌ 下载图片时出错: {e}")
-            return False
-    
-    def _save_google_image_response(self, response, file_path: str) -> bool:
-        """
-        保存Google API返回的图片
-        
-        Args:
-            response: Google API响应对象
-            file_path: 保存路径
-            
-        Returns:
-            成功返回True，失败返回False
-        """
-        if not hasattr(response, 'parts'):
-            return False
-            
-        for part in response.parts:
-            if part.text is not None:
-                logger.warning(f"   ⚠️ API返回文本: {part.text}")
-            
-            if hasattr(part, 'inline_data') and part.inline_data:
-                try:
-                    image = part.as_image()
-                    image.save(file_path)
-                    logger.info(f"   ✅ 图片保存成功: {file_path}")
-                    return True
-                except Exception as e:
-                    logger.error(f"   ❌ 保存图像失败: {e}")
-        
-        return False
 
     def _remove_background(self, filepath: Path) -> None:
         """移除背景"""
@@ -448,35 +421,14 @@ class ArtistAgent:
             logger.info(f"   🎨 生成背景: {location}...")
             logger.debug(f"   提示词: {prompt[:150]}...")
             
-            if self.provider == "openai":
-                response = self.client.images.generate(
-                    model=APIConfig.IMAGE_MODEL,
-                    prompt=prompt,
-                    size=self.config.BACKGROUND_SIZE,
-                    quality=self.config.BACKGROUND_QUALITY,
-                    style=self.config.IMAGE_STYLE,
-                    n=1
-                )
-                
-                image_url = response.data[0].url
-                if self._download_and_save_image(image_url, file_path):
-                    return file_path
-                return None
-
-            elif self.provider == "google":
-                response = self.client.models.generate_content(
-                    model=APIConfig.IMAGE_MODEL,
-                    contents=[prompt]
-                )
-                
-                if self._save_google_image_response(response, file_path):
-                    return file_path
-                else:
-                    raise ValueError("Google API 响应中未包含图像数据")
+            # 统一使用 _call_image_api 获取字节数据
+            image_data = self._call_image_api(prompt)
             
-            else:
-                raise ValueError(f"不支持的图像生成提供商: {self.provider}")
-                
+            if image_data:
+                self._save_image(image_data, Path(file_path))
+                return file_path
+            return None
+
         except Exception as e:
             logger.error(f"❌ 背景图生成失败: {e}")
             return None
@@ -556,48 +508,14 @@ class ArtistAgent:
             
             logger.info(f"   🎨 生成标题画面...")
             
-            if self.provider == "openai":
-                response = self.client.images.generate(
-                    model=APIConfig.IMAGE_MODEL,
-                    prompt=prompt,
-                    size=self.config.BACKGROUND_SIZE,
-                    quality=self.config.BACKGROUND_QUALITY,
-                    style=self.config.IMAGE_STYLE,
-                    n=1
-                )
-                
-                image_url = response.data[0].url
-                if self._download_and_save_image(image_url, file_path):
-                    return file_path
-                return None
+            # 统一使用 _call_image_api 获取字节数据
+            image_data = self._call_image_api(prompt, reference_image_paths=character_images)
+            
+            if image_data:
+                self._save_image(image_data, Path(file_path))
+                return file_path
+            return None
 
-            elif self.provider == "google":
-                contents = [prompt]
-                
-                # 添加角色参考图
-                if character_images:
-                    logger.info(f"   📎 附加 {len(character_images)} 张角色参考图...")
-                    contents[0] += "\n\nIMPORTANT: The title screen MUST include the characters shown in the attached reference images. Please maintain their appearance (hair, eyes, clothes) as much as possible while integrating them into the scene."
-                    
-                    for img_path in character_images:
-                        try:
-                            img = Image.open(img_path)
-                            contents.append(img)
-                        except Exception as e:
-                            logger.warning(f"   ⚠️ 无法加载参考图 {img_path}: {e}")
-
-                response = self.client.models.generate_content(
-                    model=APIConfig.IMAGE_MODEL,
-                    contents=contents
-                )
-                
-                if self._save_google_image_response(response, file_path):
-                    return file_path
-                else:
-                    raise ValueError("Google API 响应中未包含图像数据")
-            else:
-                raise ValueError(f"不支持的图像生成提供商: {self.provider}")
-                
         except Exception as e:
             logger.error(f"❌ 标题画面生成失败: {e}")
             return None

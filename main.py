@@ -138,7 +138,7 @@ def main():
   python main.py --mode status
 
 环境变量:
-  OPENAI_API_KEY     OpenAI API 密钥（用于 GPT-4 和 DALL-E）
+  OPENAI_API_KEY     OpenAI API 密钥（用于 GPT 和图像生成）
   OPENAI_BASE_URL    OpenAI API 基础 URL（可选）
         """
     )
