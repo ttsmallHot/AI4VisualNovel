@@ -208,48 +208,53 @@ class ArtistAgent:
         return base_prompt
 
     def _call_image_api(self, prompt: str, reference_image_paths: Optional[List[str]] = None) -> Optional[bytes]:
-        """调用图像生成 API (使用 Responses API 给 OpenAI，使用 Models API 给 Google)"""
+        """调用图像生成 API (OpenAI: images.generate/edit, Google: Models API)"""
         if self.provider == "openai":
             try:
-                # 构建输入。如果有参考图，我们需要将其编码为 Base64 塞入 input 中
-                messages = [{"type": "input_text", "text": prompt}]
-                action = "generate"
+                # 限制 prompt 长度
+                short_prompt = prompt[:1000]
+                model_name = APIConfig.IMAGE_MODEL
                 
-                if reference_image_paths:
-                    for path in reference_image_paths:
-                        if os.path.exists(path):
-                            with open(path, "rb") as image_file:
-                                b64_data = base64.b64encode(image_file.read()).decode("utf-8")
-                                # 根据文档，使用 data URL 格式
-                                messages.append({
-                                    "type": "input_image",
-                                    "image_url": f"data:image/png;base64,{b64_data}"
-                                })
-                    if len(messages) > 1:
-                        action = "auto" # 有图片时让模型决定是编辑还是参考
+                # 情况 1: 有参考图，使用 images.edit (multipart/form-data)
+                if reference_image_paths and any(os.path.exists(p) for p in reference_image_paths):
+                    ref_path = next(p for p in reference_image_paths if os.path.exists(p))
+                    # 读取并压缩参考图
+                    with open(ref_path, "rb") as f:
+                        img_bytes = f.read()
+                    
+                    logger.info(f"🎨 正在调用【OpenAI Images Edit API】(模型: {model_name})")
+                    response = self.client.images.edit(
+                        model=model_name,
+                        image=("reference.png", img_bytes, "image/png"),
+                        prompt=short_prompt,
+                        n=1,
+                        size=self.config.IMAGE_SIZE
+                    )
+                # 情况 2: 纯生成调用
+                else:
+                    logger.info(f"🎨 正在调用【OpenAI Images Generations API】(模型: {model_name})")
+                    response = self.client.images.generate(
+                        model=model_name,
+                        prompt=short_prompt,
+                        n=1,
+                        size=self.config.IMAGE_SIZE,
+                        response_format="b64_json" # 强制要求 base64 格式，更利于中转站稳定性
+                    )
                 
-                # 调用 Responses API
-                response = self.client.responses.create(
-                    model=APIConfig.IMAGE_MODEL,
-                    input=[{"role": "user", "content": messages}],
-                    tools=[{
-                        "type": "image_generation",
-                        "action": action,
-                        "size": self.config.IMAGE_SIZE,
-                        "input_fidelity": "high" if action == "auto" else "low"
-                    }]
-                )
-                
-                # 从响应中提取生成的图像 (Responses API 返回的是 base64)
-                for output in response.output:
-                    if output.type == "image_generation_call" and output.result:
-                        return base64.b64decode(output.result)
-                
+                # 处理响应数据 (支持 url 或 b64_json)
+                data = response.data[0]
+                if hasattr(data, 'b64_json') and data.b64_json:
+                    return base64.b64decode(data.b64_json)
+                elif hasattr(data, 'url') and data.url:
+                    import requests
+                    return requests.get(data.url).content
+                    
                 return None
+
             except Exception as e:
-                logger.error(f"❌ OpenAI Responses API 调用失败: {e}")
+                logger.error(f"❌ OpenAI 图像 API 调用失败: {e}")
                 return None
-            
+        
         elif self.provider == "google":
             contents = [prompt]
             if reference_image_paths:

@@ -14,6 +14,9 @@ Unlike prior approaches that focus on linear narrative generation or struggle wi
 
 `AI4VisualNovel` introduces a **novel "Actor Agent" paradigm** that participates in both dialogue generation and visual auditing. By simulating a professional studio pipeline (Producer, Writer, Actor, Artist) , it enables the generation of **persona-aligned character sprites** and authentic dialogue, ensuring that visual assets strictly adhere to character settings rather than generic descriptions. The framework directly outputs **playable game**, bridging the gap between LLM creativity and executable interactive media.
 
+# News
+- [2026.01] Code released! The paper is coming soon...
+
 
 ## 📺 Output Game Preview
 <p align="center">
