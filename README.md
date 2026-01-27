@@ -56,8 +56,13 @@ Follow these steps to set up your development environment:
 ## 🎮 Visual Novel Generation & Execution
 
 ### 1. Story Generation
-Start the multi-agent collaboration to generate world settings, characters, and scripts from scratch:
+Start the multi-agent collaboration to generate world settings, characters, and scripts from scratch. You can provide your requirements via a text file:
+
 ```bash
+# Generate with a requirements file
+python main.py --mode create --requirements-file /your/requirement/file/path
+
+# Or generate with empty requirements (AI will decide everything)
 python main.py --mode create
 ```
 *   **Outputs**: Generated files are all stored in `data` fold. 

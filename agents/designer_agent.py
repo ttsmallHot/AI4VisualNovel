@@ -29,7 +29,6 @@ class DesignerAgent:
     
     def generate_game_design(
         self,
-        game_style: str = None,
         character_count: int = None,
         requirements: str = "",
         feedback: str = None,
@@ -39,21 +38,18 @@ class DesignerAgent:
         生成或修改游戏设计
         
         Args:
-            game_style: 游戏风格
             character_count: 角色数量
             requirements: 用户需求
             feedback: 制作人反馈 (可选，用于优化模式)
             previous_game_design: 之前生成的游戏设计 (可选，用于优化模式)
         """
         character_count = character_count or self.config.DEFAULT_CHARACTER_COUNT
-        style_str = game_style if game_style else "自由发挥"
         
         logger.info("📝 策划正在生成游戏设计...")
         
         try:
             # 构建基础 prompt
             user_prompt = self.config.GAME_DESIGN_PROMPT.format(
-                game_style=style_str,
                 character_count=character_count,
                 total_nodes=self.config.TOTAL_NODES,
                 requirements=requirements if requirements else "无"

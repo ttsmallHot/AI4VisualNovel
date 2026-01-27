@@ -107,7 +107,6 @@ class WorkflowController:
     
     def create_new_game(
         self,
-        game_style: Optional[str] = None,
         character_count: int = 3,
         requirements: str = ""
     ) -> Dict[str, Any]:
@@ -128,7 +127,6 @@ class WorkflowController:
             else:
                 logger.info("   未找到游戏设计，策划开始草拟方案...")
                 self.game_design = self.designer.generate_game_design(
-                    game_style=game_style,
                     character_count=character_count,
                     requirements=requirements
                 )
@@ -154,7 +152,6 @@ class WorkflowController:
                     logger.info("   🔧 策划正在根据反馈完善设计...")
                     # 使用新的统一接口：传入 feedback 和 previous_game_design
                     self.game_design = self.designer.generate_game_design(
-                        game_style=game_style,
                         character_count=character_count,
                         requirements=requirements,
                         feedback=feedback,

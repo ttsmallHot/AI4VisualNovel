@@ -51,13 +51,23 @@ def create_game_flow(args):
     )
     
     # 获取用户自定义要求
-    print("\n请输入您对游戏的构想（例如：'校园恋爱，主角是转校生' 或 '废土生存，寻找人类最后的聚集地'）：")
-    print("（直接回车则由 AI 自由发挥）")
-    user_requirements = input("> ").strip()
+    user_requirements = ""
+    if args.requirements_file:
+        if os.path.exists(args.requirements_file):
+            print(f"\n📖 正在从文件读取游戏构想: {args.requirements_file}")
+            try:
+                with open(args.requirements_file, 'r', encoding='utf-8') as f:
+                    user_requirements = f.read().strip()
+                    print(f"✅ 已加载构想: {user_requirements[:50]}...")
+            except Exception as e:
+                print(f"⚠️ 读取文件失败: {e}，将使用空需求继续。")
+        else:
+            print(f"⚠️ 找不到需求文件: {args.requirements_file}，将使用空需求继续。")
+    else:
+        print("\n💡 未提供需求文件，将由 AI 自由发挥内容。")
     
     # 创建游戏
     game_design = workflow.create_new_game(
-        game_style=args.game_style,
         character_count=args.character_count,
         requirements=user_requirements
     )
@@ -129,7 +139,7 @@ def main():
         epilog="""
 使用示例:
   # 创建新游戏
-  python main.py --mode create --character-count 3
+  python main.py --mode create --requirements-file data/story.txt
   
   # 游玩游戏
   python main.py --mode play
@@ -150,8 +160,8 @@ def main():
         help='运行模式: create=创建游戏, play=游玩游戏, status=查看状态'
     )
     
-    parser.add_argument('--game-style', default=None, help='游戏风格 (默认由 AI 决定)')
     parser.add_argument('--character-count', type=int, default=DesignerConfig.DEFAULT_CHARACTER_COUNT, help='角色数量')
+    parser.add_argument('--requirements-file', help='包含游戏构想的文本文件路径')
     
     parser.add_argument('--openai-key', help='OpenAI API Key (覆盖环境变量)')
     parser.add_argument('--openai-base-url', help='OpenAI API Base URL (覆盖环境变量)')
