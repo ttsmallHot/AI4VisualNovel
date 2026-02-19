@@ -85,5 +85,8 @@ If you want to distribute your Pygame masterpiece, build a standalone executable
   ```bash
   pyinstaller --onefile --windowed --name "AI4VisualNovel" --add-data "data:data" main.py
   ```
+
+## 📜 License
+This project is licensed under the [Apache License 2.0](LICENSE).
   
 
