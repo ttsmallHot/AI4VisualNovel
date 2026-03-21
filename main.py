@@ -4,9 +4,9 @@ AI Visual Novel - Main Entry Point
 AI 驱动的自动化 Visual Novel 生成和运行系统
 
 主要功能:
-1. 使用制作人 Agent (GPT-4) 生成游戏设计
-2. 使用美术 Agent (Gemini) 生成角色立绘
-3. 使用编剧 Agent (GPT-4) 生成剧情
+1. 使用制作人 Agent生成游戏设计
+2. 使用美术 Agent生成角色立绘
+3. 使用编剧 Agent生成剧情
 4. 启动游戏 UI 进行游玩
 """
 
@@ -66,11 +66,13 @@ def create_game_flow(args):
     else:
         print("\n💡 未提供需求文件，将由 AI 自由发挥内容。")
     
-    # 创建游戏
-    game_design = workflow.create_new_game(
+    # 创建游戏 (这里为了兼容老命令，连放三个阶段跑完)
+    game_design = workflow.run_design_phase(
         character_count=args.character_count,
         requirements=user_requirements
     )
+    workflow.run_script_phase()
+    workflow.run_render_phase()
     
     print("\n" + "="*70)
     print("🎉 游戏创建完成！")
@@ -108,28 +110,44 @@ def play_game_flow():
     game.run()
 
 
-def status_flow():
-    """显示游戏状态"""
+def design_game_flow(args):
+    """仅运行设计阶段"""
     print("\n" + "="*70)
-    print("📊 AI Visual Novel - 游戏状态")
+    print("🎬 AI Visual Novel - [阶段 1] 游戏设计模式")
     print("="*70)
     
     workflow = WorkflowController()
+    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
     
-    if not workflow.load_existing_game():
-        print("\n❌ 未找到游戏数据!")
-        return
-    
-    status = workflow.get_game_status()
-    
-    print(f"\n📖 游戏标题: {status['title']}")
-    print(f"� 生成进度: {status['completed_nodes']}/{status['total_nodes']} 个剧情节点已完成")
-    
-    if status['completed_nodes'] == status['total_nodes']:
-        print(f"\n🎊 恭喜！全剧情生成已完成！")
-    else:
-        print(f"\n💪 继续努力，还有部分节点未生成!")
+    user_requirements = ""
+    if args.requirements_file and os.path.exists(args.requirements_file):
+        with open(args.requirements_file, 'r', encoding='utf-8') as f:
+            user_requirements = f.read().strip()
+            
+    workflow.run_design_phase(
+        character_count=args.character_count,
+        requirements=user_requirements
+    )
 
+def script_game_flow(args):
+    """仅运行剧本生成阶段"""
+    print("\n" + "="*70)
+    print("🎬 AI Visual Novel - [阶段 2] 剧本生成模式")
+    print("="*70)
+    
+    workflow = WorkflowController()
+    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
+    workflow.run_script_phase()
+
+def render_game_flow(args):
+    """仅运行渲染阶段"""
+    print("\n" + "="*70)
+    print("🎬 AI Visual Novel - [阶段 3] 资产渲染模式")
+    print("="*70)
+    
+    workflow = WorkflowController()
+    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
+    workflow.run_render_phase()
 
 def main():
     """主函数"""
@@ -143,9 +161,6 @@ def main():
   
   # 游玩游戏
   python main.py --mode play
-  
-  # 查看游戏状态
-  python main.py --mode status
 
 环境变量:
   OPENAI_API_KEY     OpenAI API 密钥（用于 GPT 和图像生成）
@@ -155,9 +170,9 @@ def main():
     
     parser.add_argument(
         '--mode',
-        choices=['create', 'play', 'status'],
+        choices=['create', 'design', 'script', 'render', 'play'],
         default='play',
-        help='运行模式: create=创建游戏, play=游玩游戏, status=查看状态'
+        help='运行模式: \n  create=一键跑完所有流程(不推荐)\n  design=仅生成大纲设定\n  script=仅根据大纲生成文本剧本\n  render=根据剧本渲染图片素材\n  play=游玩'
     )
     
     parser.add_argument('--character-count', type=int, default=DesignerConfig.DEFAULT_CHARACTER_COUNT, help='角色数量')
@@ -178,10 +193,14 @@ def main():
     try:
         if args.mode == 'create':
             create_game_flow(args)
+        elif args.mode == 'design':
+            design_game_flow(args)
+        elif args.mode == 'script':
+            script_game_flow(args)
+        elif args.mode == 'render':
+            render_game_flow(args)
         elif args.mode == 'play':
             play_game_flow()
-        elif args.mode == 'status':
-            status_flow()
     except KeyboardInterrupt:
         print("\n\n👋 用户中断，退出程序")
         sys.exit(0)

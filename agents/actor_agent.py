@@ -7,14 +7,14 @@ Actor Agent
 import json
 import logging
 from typing import Dict, Any, Optional, List
-from .llm_client import LLMClient
+from .base_agent import BaseAgent
 
 from .config import ActorConfig
 
 logger = logging.getLogger(__name__)
 
 
-class ActorAgent:
+class ActorAgent(BaseAgent):
     """演员 Agent - 角色扮演与剧本审核"""
     
     def __init__(self, character_info: Dict[str, Any], api_key: Optional[str] = None, base_url: Optional[str] = None):
@@ -26,11 +26,16 @@ class ActorAgent:
             api_key: API Key
             base_url: API Base URL
         """
-        self.llm_client = LLMClient(api_key=api_key, base_url=base_url)
+        character_name = character_info.get('name', 'Unknown')
+        super().__init__(
+            name=character_name,
+            role="演员",
+            api_key=api_key,
+            base_url=base_url
+        )
         self.config = ActorConfig
         self.character_info = character_info
-        self.name = character_info.get('name', 'Unknown')
-        self.is_protagonist = character_info.get('is_protagonist', False)
+        self.name = character_name
         
         logger.info(f"✅ 演员 Agent ({self.name}) 初始化成功")
     
@@ -44,8 +49,8 @@ class ActorAgent:
         """根据剧情片段进行表演"""
         logger.info(f"🎭 演员 {self.name} 正在表演片段...")
         
-        # 确定剧本中使用的标签名
-        script_label = "我" if self.is_protagonist else self.name
+        # 统一使用角色真实名称作为剧本标签
+        script_label = self.name
         
         # 构建其他角色的详细信息
         other_chars_info = "\n".join([
@@ -61,6 +66,10 @@ class ActorAgent:
             story_context=story_context,
             character_expressions=", ".join(character_expressions)
         )
+
+        memory_context = self.get_memory_context()
+        if memory_context:
+            prompt += f"\n\n【角色短期记忆】\n{memory_context}"
         
         system_prompt = self.config.SYSTEM_PROMPT.format(
             name=self.name,
@@ -69,13 +78,18 @@ class ActorAgent:
         )
         
         try:
-            return self.llm_client.chat_completion(
+            performance = self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
                 temperature=0.9 # 表演需要创造力
             )
+
+            if performance.strip():
+                self.add_short_term_memory(performance[:300])
+
+            return performance
         except Exception as e:
             logger.error(f"❌ 表演失败: {e}")
             return ""

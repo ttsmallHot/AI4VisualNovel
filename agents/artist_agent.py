@@ -9,11 +9,12 @@ from PIL import Image, ImageOps
 from rembg import remove, new_session
 
 from .config import APIConfig, ArtistConfig, PathConfig
+from .base_agent import BaseAgent
 
 logger = logging.getLogger(__name__)
 
 
-class ArtistAgent:
+class ArtistAgent(BaseAgent):
     """美术 Agent - 角色立绘生成器（支持 OpenAI GPT Image 和 Google Imagen）"""
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
@@ -24,6 +25,13 @@ class ArtistAgent:
             api_key: API Key
             base_url: API Base URL
         """
+        super().__init__(
+            name="Artist",
+            role="美术",
+            api_key=api_key,
+            base_url=base_url
+        )
+
         self.provider = APIConfig.IMAGE_PROVIDER.lower()
         self.api_key = api_key
         self.base_url = base_url

@@ -56,7 +56,7 @@ Follow these steps to set up your development environment:
 ## 🎮 Visual Novel Generation & Execution
 
 ### 1. Story Generation
-Start the multi-agent collaboration to generate world settings, characters, and scripts from scratch. You can provide your requirements via a text file:
+Start the multi-agent collaboration to generate world settings, story graph, scripts, and visual assets. You can provide your requirements via a text file:
 
 ```bash
 # Generate with a requirements file
@@ -64,8 +64,14 @@ python main.py --mode create --requirements-file /your/requirement/file/path
 
 # Or generate with empty requirements (AI will decide everything)
 python main.py --mode create
+
+# Or run by phases (recommended)
+python main.py --mode design --requirements-file /your/requirement/file/path
+python main.py --mode script
+python main.py --mode render
 ```
-*   **Outputs**: Generated files are all stored in `data` fold. 
+*   **Outputs**: Generated files are stored in `data` folder, including `game_design.json`, `story_graph.json`, `story.txt`, and images.
+*   **Design phase note**: `design` uses a two-step pipeline — Step1 generates outline (`story_outline.groups`), Step2 generates `story_graph` and writes it to `data/story_graph.json`.
 
 ### 2. Play the Game
 Execute the built-in Pygame-based engine to experience the generated story:

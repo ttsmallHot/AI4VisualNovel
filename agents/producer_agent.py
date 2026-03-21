@@ -6,75 +6,101 @@ Producer Agent
 
 import logging
 from typing import Dict, Any, Optional
-from .llm_client import LLMClient
+from .base_agent import BaseAgent
 import json
 
-from .config import APIConfig, ProducerConfig, PathConfig, STANDARD_EXPRESSIONS
-from .utils import JSONParser, FileHelper, PromptBuilder
+from .config import ProducerConfig, PathConfig
+from .utils import FileHelper
 
 logger = logging.getLogger(__name__)
 
 
-class ProducerAgent:
+class ProducerAgent(BaseAgent):
     """制作人 Agent - 负责审核设计预览并把控全局"""
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         """
         初始化制作人 Agent
         """
-        self.llm_client = LLMClient(api_key=api_key, base_url=base_url)
+        super().__init__(
+            name="Producer",
+            role="制作人",
+            api_key=api_key,
+            base_url=base_url
+        )
         self.config = ProducerConfig
         
         logger.info("✅ 制作人 Agent 初始化成功")
     
-    def critique_game_design(
-        self, 
-        game_design: Dict[str, Any], 
+    def critique_game_outline(
+        self,
+        game_outline: Dict[str, Any],
         user_requirements: str = "",
         expected_nodes: int = 12,
         expected_characters: int = 3
     ) -> str:
-        """
-        审核由策划草拟的游戏设计文档 (Feedback phase)
-        
-        Args:
-            game_design: 策划提交的设计方案
-            user_requirements: 用户原始要求
-            expected_nodes: 期望的节点总数
-            expected_characters: 期望的角色数量
-            
-        Returns:
-            "PASS" 或 修改建议
-        """
-        logger.info("📋 制作人正在审核策划的设计草案...")
-        
+        """Step1 审核：仅审核 story_outline 与基础设定。"""
+        logger.info("📋 制作人正在审核 Step1 大纲...")
+
         try:
-            prompt = self.config.GAME_DESIGN_CRITIQUE_PROMPT.format(
-                game_design=json.dumps(game_design, ensure_ascii=False, indent=2),
+            prompt = self.config.GAME_OUTLINE_CRITIQUE_PROMPT.format(
+                game_outline=json.dumps(game_outline, ensure_ascii=False, indent=2),
                 user_requirements=user_requirements if user_requirements else "无特别要求",
                 expected_nodes=expected_nodes,
                 expected_characters=expected_characters
             )
-            
+
             feedback = self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": self.config.SYSTEM_PROMPT},
                     {"role": "user", "content": prompt}
                 ],
-                temperature=0.7
-            )
-            
-            feedback = feedback.strip()
+                temperature=0.5
+            ).strip()
+
             if "PASS" in feedback:
-                logger.info("✅ 制作人审核通过！方案已批准落地。")
+                logger.info("✅ Step1 大纲审核通过")
                 return "PASS"
-            else:
-                logger.warning("⚠️ 制作人提出修改建议")
-                return feedback
-                
+
+            logger.warning("⚠️ Step1 大纲需要修改")
+            return feedback
         except Exception as e:
-            logger.error(f"❌ 制作人审核过程出错: {e}")
-            return "PASS" # 出错时默认为通过，避免流程中断
+            logger.error(f"❌ Step1 大纲审核失败: {e}")
+            return "PASS"
+
+    def critique_story_graph(
+        self,
+        story_graph: Dict[str, Any],
+        game_outline: Dict[str, Any],
+        expected_nodes: int = 12
+    ) -> str:
+        """Step2 审核：仅审核图结构与与 outline 一致性。"""
+        logger.info("📋 制作人正在审核 Step2 story_graph...")
+
+        try:
+            prompt = self.config.STORY_GRAPH_CRITIQUE_PROMPT.format(
+                story_graph=json.dumps(story_graph, ensure_ascii=False, indent=2),
+                game_outline=json.dumps(game_outline, ensure_ascii=False, indent=2),
+                expected_nodes=expected_nodes
+            )
+
+            feedback = self.llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": self.config.SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt}
+                ],
+                temperature=0.3
+            ).strip()
+
+            if "PASS" in feedback:
+                logger.info("✅ Step2 story_graph 审核通过")
+                return "PASS"
+
+            logger.warning("⚠️ Step2 story_graph 需要修改")
+            return feedback
+        except Exception as e:
+            logger.error(f"❌ Step2 story_graph 审核失败: {e}")
+            return "PASS"
 
     def save_game_design(self, game_design: Dict[str, Any]) -> None:
         """

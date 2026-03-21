@@ -6,7 +6,7 @@ LLM Client
 
 import logging
 import os
-from typing import List, Dict, Any, Optional, Union
+from typing import List, Dict, Any, Optional
 from .config import APIConfig
 
 logger = logging.getLogger(__name__)

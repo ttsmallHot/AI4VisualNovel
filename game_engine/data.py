@@ -123,10 +123,10 @@ class StoryParser:
             else:
                 return {"type": "dialogue", "speaker": speaker, "text": text, "emotion": "neutral"}
         
-        # [JUMP: node_id]
-        jump_match = re.match(r'\[JUMP: (.+?)\]', line)
+        # <jump target="node_id"/>（新格式）
+        jump_match = re.match(r'<jump\s+target="([^"]+)"\s*/>', line)
         if jump_match:
-            return {"type": "jump", "target": jump_match.group(1)}
+            return {"type": "jump", "target": jump_match.group(1).strip()}
 
         # [CHOICE]
         if line == '[CHOICE]':

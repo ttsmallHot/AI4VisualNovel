@@ -39,6 +39,8 @@ class WorkflowController:
         self.designer = None
         self.artist = None
         self.writer = None
+        self.api_key = None
+        self.base_url = None
         self.actors = {}  # 存储所有演员 Agent: {name: ActorAgent}
         self.expressions_db = self._load_expressions()  # 表情库管理
         
@@ -104,88 +106,168 @@ class WorkflowController:
                 is_protagonist = char_info.get('is_protagonist', False)
                 role_label = " (主角)" if is_protagonist else ""
                 logger.info(f"   ✅ 演员就位: {name}{role_label}")
+
+    @staticmethod
+    def _save_json(path: str, data: Dict[str, Any]) -> None:
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
     
-    def create_new_game(
+    def run_design_phase(
         self,
         character_count: int = 3,
         requirements: str = ""
     ) -> Dict[str, Any]:
         """
-        创建新游戏（完整流程：设计 -> 选角 -> 生成 -> 完结）
+        阶段 1：设计阶段 (生成游戏大纲、角色设定和背景)
         """
         logger.info("="*60)
-        logger.info("🎬 开始创建新游戏")
+        logger.info("🎬 [阶段 1] 开始设计生成")
         logger.info("="*60)
         
         try:
-            # Step 1: 检查或生成游戏设计文档
-            logger.info("\n【Step 1/5】检查游戏设计文档...")
             existing_design = self.producer.load_game_design()
             if existing_design:
                 logger.info(f"✅ 检测到已存在的游戏设计: 《{existing_design['title']}》")
                 self.game_design = existing_design
-            else:
-                logger.info("   未找到游戏设计，策划开始草拟方案...")
-                self.game_design = self.designer.generate_game_design(
-                    character_count=character_count,
-                    requirements=requirements
+                return self.game_design
+            
+            logger.info("   未找到游戏设计，策划开始草拟方案...")
+            max_iterations = 3
+
+            # -------------------------
+            # Step1: 生成并审核大纲（无 story_graph）
+            # -------------------------
+            game_outline = self.designer.generate_game_outline(
+                character_count=character_count,
+                requirements=requirements
+            )
+            self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
+            logger.info(f"   💾 Step1 已保存（无 story_graph）: {PathConfig.GAME_DESIGN_FILE}")
+
+            outline_iteration = 0
+            while outline_iteration < max_iterations:
+                logger.info(f"   📋 制作人正在审核 Step1 大纲 (第 {outline_iteration + 1} 轮)...")
+                outline_feedback = self.producer.critique_game_outline(
+                    game_outline=game_outline,
+                    user_requirements=requirements,
+                    expected_nodes=self.designer.config.TOTAL_NODES,
+                    expected_characters=character_count
                 )
+
+                if outline_feedback == "PASS":
+                    logger.info("   ✅ Step1 大纲审核通过")
+                    break
+
+                logger.info(f"   ⚠️ Step1 反馈: {outline_feedback[:100]}...")
+                logger.info("   🔧 策划正在根据 Step1 反馈修改大纲...")
+                previous_outline = game_outline
+                game_outline = self.designer.generate_game_outline(
+                    character_count=character_count,
+                    requirements=requirements,
+                    feedback=outline_feedback,
+                    previous_game_outline=previous_outline
+                )
+                self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
+                outline_iteration += 1
+
+            if outline_iteration >= max_iterations:
+                logger.warning("   ⚠️ Step1 达到最大审核次数，制作人强制批准当前大纲继续。")
+
+            # -------------------------
+            # Step2: 基于通过大纲生成并审核 story_graph
+            # -------------------------
+            story_graph = self.designer.generate_story_graph_from_outline(game_outline)
+            self._save_json(PathConfig.STORY_GRAPH_FILE, story_graph)
+            logger.info(f"   💾 Step2 已保存 story_graph: {PathConfig.STORY_GRAPH_FILE}")
+
+            graph_iteration = 0
+            while graph_iteration < max_iterations:
+                logger.info(f"   📋 制作人正在审核 Step2 story_graph (第 {graph_iteration + 1} 轮)...")
+                graph_feedback = self.producer.critique_story_graph(
+                    story_graph=story_graph,
+                    game_outline=game_outline,
+                    expected_nodes=self.designer.config.TOTAL_NODES
+                )
+
+                if graph_feedback == "PASS":
+                    logger.info("   ✅ Step2 story_graph 审核通过")
+                    break
+
+                logger.info(f"   ⚠️ Step2 反馈: {graph_feedback[:100]}...")
+                logger.info("   🔧 策划正在根据 Step2 反馈修正 story_graph...")
+                story_graph = self.designer.generate_story_graph_from_outline(
+                    game_outline,
+                    feedback=graph_feedback
+                )
+                self._save_json(PathConfig.STORY_GRAPH_FILE, story_graph)
+                graph_iteration += 1
+
+            if graph_iteration >= max_iterations:
+                logger.warning("   ⚠️ Step2 达到最大审核次数，制作人强制批准当前图结构继续。")
+
+            # 合并成完整 game_design
+            self.game_design = game_outline
+            self.game_design["story_graph"] = story_graph
                 
-                # 制作人审核方案 (多轮迭代)
-                max_iterations = 3
-                current_iteration = 0
-                
-                while current_iteration < max_iterations:
-                    logger.info(f"   📋 制作人正在审核设计稿 (第 {current_iteration + 1} 轮)...")
-                    feedback = self.producer.critique_game_design(
-                        self.game_design, 
-                        requirements,
-                        expected_nodes=self.designer.config.TOTAL_NODES,
-                        expected_characters=character_count
-                    )
-                    
-                    if feedback == "PASS":
-                        logger.info("   ✅ 制作人签署通过！")
-                        break
-                    
-                    logger.info(f"   ⚠️  制作人反馈: {feedback[:100]}...")
-                    logger.info("   🔧 策划正在根据反馈完善设计...")
-                    # 使用新的统一接口：传入 feedback 和 previous_game_design
-                    self.game_design = self.designer.generate_game_design(
-                        character_count=character_count,
-                        requirements=requirements,
-                        feedback=feedback,
-                        previous_game_design=self.game_design
-                    )
-                    current_iteration += 1
-                
-                if current_iteration >= max_iterations:
-                    logger.warning("   ⚠️ 达到最大审核次数，制作人强制批准当前版本继续。")
-                
-                # 保存最终版本
-                self.producer.save_game_design(self.game_design)
+            self.producer.save_game_design(self.game_design)
+            logger.info("🎉 阶段 1：游戏设计阶段完成！你可以检查 data/game_design.json 文件进行修改。")
+            return self.game_design
             
-            # Step 2: 初始化演员
-            logger.info("\n【Step 2/6】初始化演员阵容...")
+        except Exception as e:
+            logger.error(f"❌ 设计阶段失败: {e}", exc_info=True)
+            raise
+
+    def run_script_phase(self) -> bool:
+        """
+        阶段 2：剧本生成阶段 (演员扮演、剧本切分)
+        """
+        logger.info("="*60)
+        logger.info("🎬 [阶段 2] 开始剧本生成")
+        logger.info("="*60)
+        
+        if not self.load_existing_game():
+            logger.error("❌ 未找到游戏设计文档，请先运行设计阶段 (python main.py --mode design)！")
+            return False
             
-            # 确保表情库与当前游戏设计同步（清理不存在的角色）
+        try:
+            logger.info("\n【初始化】加载演员...")
             self._sync_expressions_with_design()
-            
             self._initialize_actors()
             
-            # Step 3: 生成完整故事
-            logger.info(f"\n【Step 3/6】生成完整故事 (DAG-based)...")
+            logger.info(f"\n【生成剧本】正在按照 DAG 图生成全节点剧情...")
             self._generate_full_story()
             
-            # Step 4: 扫描剧本，更新表情库
-            logger.info("\n【Step 4/6】扫描剧本，同步表情库...")
+            logger.info("\n【分析图片需求】扫描剧本提取所需的角色表情记录...")
             self._scan_story_for_expressions()
             
-            # Step 5: 生成所有美术资源 (背景 + 立绘)
-            logger.info("\n【Step 5/6】生成美术资源 (背景 + 角色立绘)...")
+            logger.info("🎉 阶段 2：剧本生成阶段完成！所有的剧本片段已就绪。")
+            return True
             
-            # 2. 生成场景背景
-            logger.info("   🎨 生成场景背景...")
+        except Exception as e:
+            logger.error(f"❌ 剧本生成阶段失败: {e}", exc_info=True)
+            raise
+
+    def run_render_phase(self) -> bool:
+        """
+        阶段 3：多模态资产渲染阶段 (背景、立绘、审核)
+        """
+        logger.info("="*60)
+        logger.info("🎬 [阶段 3] 开始资产渲染")
+        logger.info("="*60)
+        
+        if not self.load_existing_game():
+            logger.error("❌ 未找到游戏设计文档，请先运行设计阶段！")
+            return False
+            
+        try:
+            # 演员立绘审核需要 Actor 对象
+            self._initialize_actors()
+            
+            # 确保表情库同步
+            self._sync_expressions_with_design()
+            
+            # 第一步：场景渲染
+            logger.info("   🎨 开始渲染场景背景...")
             locations = [scene['name'] for scene in self.game_design.get('scenes', [])]
             self.artist.generate_all_backgrounds(
                 locations,
@@ -193,24 +275,21 @@ class WorkflowController:
                 art_style=self.game_design.get('art_style')
             )
             
-            # 3. 生成所有角色立绘
-            logger.info("   👥 生成所有角色立绘...")
+            # 第二步：角色立绘渲染
+            logger.info("   👥 开始渲染全人物表情立绘...")
             self._generate_character_assets()
             
-            # Step 6: 生成标题画面 (此时已有所有美术资源)
-            logger.info("\n【Step 6/6】生成标题画面...")
+            # 第三步：标题画面
+            logger.info("\n【生成封面】")
             character_ref_images = []
             for char_info in self.game_design.get('characters', []):
                 char_id = char_info.get('id', char_info.get('name'))
-                # 尝试查找 neutral 或其他表情
                 char_dir = os.path.join(PathConfig.CHARACTERS_DIR, char_id)
                 if os.path.exists(char_dir):
-                    # 优先找 neutral
                     neutral_path = os.path.join(char_dir, "neutral.png")
                     if os.path.exists(neutral_path):
                         character_ref_images.append(neutral_path)
                     else:
-                        # 找任意一张 png
                         try:
                             files = [f for f in os.listdir(char_dir) if f.endswith('.png')]
                             if files:
@@ -225,11 +304,11 @@ class WorkflowController:
             )
             
             logger.info("\n" + "="*60)
-            logger.info("🎉 游戏制作全部完成！")
-            return self.game_design
+            logger.info("🎉 游戏制作全流程彻底完成！进入 play 模式即可游玩。")
+            return True
             
         except Exception as e:
-            logger.error(f"❌ 游戏创建失败: {e}")
+            logger.error(f"❌ 渲染阶段失败: {e}", exc_info=True)
             raise
 
     def _generate_expression_with_critique(
@@ -541,31 +620,20 @@ class WorkflowController:
             
             # 节点摘要和内容缓存
             node_summaries = {}
-            node_contents = {}
             
             for idx, node_id in enumerate(node_order, 1):
                 node_info = story_graph.get_node(node_id)
                 logger.info(f"\n📅 [{idx}/{len(node_order)}] 正在制作节点: {node_id}")
                 
                 # 检查是否已存在
-                story_path = Path(PathConfig.STORY_FILE)
                 node_exists = False
-                if story_path.exists():
-                    with open(story_path, 'r', encoding='utf-8') as f:
-                        content = f.read()
-                        if f"=== Node: {node_id} ===" in content:
-                            node_exists = True
-                            logger.info(f"   ⏭️ 节点剧情已存在，跳过生成")
-                            
-                            # 提取内容用于上下文
-                            pattern = f"=== Node: {node_id} ===(.*?)(=== Node|$)"
-                            match = re.search(pattern, content, re.DOTALL)
-                            if match:
-                                node_content = match.group(1).strip()
-                                node_contents[node_id] = node_content
-                                if node_id not in node_summaries:
-                                    node_summary = self.writer.summarize_story(node_content)
-                                    node_summaries[node_id] = node_summary
+                node_content = self._extract_node_story(node_id)
+                if node_content:
+                    node_exists = True
+                    logger.info(f"   ⏭️ 节点剧情已存在，跳过生成")
+                    if node_id not in node_summaries:
+                        node_summary = self.writer.summarize_story(node_content)
+                        node_summaries[node_id] = node_summary
                 
                 if not node_exists:
                     # 构建上下文（支持多父节点）
@@ -591,17 +659,25 @@ class WorkflowController:
                             )
                         else:
                             # 普通节点：使用完整父节点内容
-                            parent_contents = [node_contents.get(p, "") for p in parents if p in node_contents]
+                            parent_contents = []
+                            for parent_id in parents:
+                                parent_content = self._extract_node_story(parent_id)
+                                if parent_content:
+                                    parent_contents.append(parent_content)
                             short_term_memory = "\n\n".join(parent_contents)
-                    
-                    full_context = f"{long_term_memory}\n\n【最近剧情】:\n{short_term_memory}"
+
+                    if short_term_memory:
+                        self.writer.add_short_term_memory(short_term_memory)
+
+                    writer_short_memory_context = self.writer.get_memory_context()
+                    if writer_short_memory_context:
+                        full_context = f"{long_term_memory}\n\n{writer_short_memory_context}"
+                    else:
+                        full_context = f"{long_term_memory}\n\n【最近剧情】:\n{short_term_memory}"
                     
                     # 生成剧情
-                    node_performance_data = []
                     plot_summary = node_info.get('summary', '')
                     
-                    # 找出登场角色
-                    char_names = list(self.actors.keys())
                     present_actors = list(self.actors.items())  # 直接用全体角色
                     
                     if present_actors:
@@ -637,6 +713,8 @@ class WorkflowController:
                         for plot_idx, plot_info in enumerate(plots, 1):
                             plot_id = plot_info.get('id', plot_idx)
                             current_plot_summary = plot_info.get('summary', plot_summary)
+
+                            self.writer.add_short_term_memory(f"片段目标: {current_plot_summary}")
                             
                             logger.info(f"🎬 执行片段 {plot_idx}/{len(plots)}: {current_plot_summary[:50]}...")
                             
@@ -655,8 +733,11 @@ class WorkflowController:
                             
                             while turn_count < safety_limit:
                                 current_total_context = f"{plot_full_context}\n\n【当前片段对话】:\n{plot_current_context}"
-                                
-                                present_char_names = [name for name, _ in present_actors]
+
+                                writer_turn_memory = self.writer.get_memory_context()
+                                if writer_turn_memory:
+                                    current_total_context += f"\n\n{writer_turn_memory}"
+
                                 # 从 ActorAgent 中提取角色信息字典
                                 present_char_info = [actor.character_info for _, actor in present_actors]
                                 next_speaker_name, plot_guidance = self.writer.decide_next_speaker(
@@ -718,6 +799,8 @@ class WorkflowController:
                                 
                                 if performance.strip():
                                     plot_current_context += f"{performance}\n"
+                                    self.writer.add_short_term_memory(performance)
+                                    next_actor.add_short_term_memory(performance)
                                     self._update_character_expressions(next_char_name, performance)
                                     turn_count += 1
                                 else:
@@ -734,7 +817,10 @@ class WorkflowController:
                         
                         # 获取选项信息
                         children = story_graph.get_children(node_id)
-                        choices_data = [{"target": child_id, "text": choice_text} for child_id, choice_text in children]
+                        # 仅在真正分支（2个及以上子节点）时生成可见选项
+                        choices_data = []
+                        if len(children) > 1:
+                            choices_data = [{"target": child_id, "text": choice_text} for child_id, choice_text in children]
                         
                         # 调用 writer 润色整合
                         polished_script = self.writer.synthesize_script(
@@ -744,12 +830,24 @@ class WorkflowController:
                             available_scenes=available_scenes,
                             available_characters=available_characters
                         )
+
+                        # 单一路径节点：不显示选项，改为自动跳转到唯一子节点
+                        if len(children) == 1:
+                            next_node_id, _ = children[0]
+                            jump_tag = f"<jump target=\"{next_node_id}\"/>"
+                            if jump_tag not in polished_script:
+                                polished_script = polished_script.rstrip() + f"\n\n{jump_tag}\n"
                         
                         # 保存润色后的剧本
                         self._save_node_story(node_id, polished_script)
-                        node_contents[node_id] = polished_script
-                        node_summary = self.writer.summarize_story(polished_script)
-                        node_summaries[node_id] = node_summary
+                        saved_node_content = self._extract_node_story(node_id)
+                        if saved_node_content:
+                            node_summary = self.writer.summarize_story(saved_node_content)
+                            node_summaries[node_id] = node_summary
+                        else:
+                            logger.warning(f"⚠️ 节点 {node_id} 保存后未能从 story.txt 截取到内容，回退使用内存文本")
+                            node_summary = self.writer.summarize_story(polished_script)
+                            node_summaries[node_id] = node_summary
                     
                     logger.info(f"✅ 节点 {node_id} 剧情生成完成")
             
@@ -873,35 +971,6 @@ class WorkflowController:
                 del self.expressions_db[name]
             self._save_expressions()
 
-    def get_game_status(self) -> Dict[str, Any]:
-        """
-        获取当前游戏状态
-        
-        Returns:
-            游戏状态字典
-        """
-        if not self.game_design:
-            return {"initialized": False}
-        
-        # 统计已生成的节点数
-        total_nodes = len(self.game_design.get("story_graph", {}).get("nodes", {}))
-        completed_nodes = 0
-        
-        story_path = Path(PathConfig.STORY_FILE)
-        if story_path.exists():
-            with open(story_path, "r", encoding="utf-8") as f:
-                content = f.read()
-                for node_id in self.game_design.get("story_graph", {}).get("nodes", {}):
-                    if f"=== Node: {node_id} ===" in content:
-                        completed_nodes += 1
-        
-        return {
-            "initialized": True,
-            "title": self.game_design.get('title', 'Unknown'),
-            "completed_nodes": completed_nodes,
-            "total_nodes": total_nodes
-        }
-    
     def _build_long_term_memory(
         self, 
         node_id: str, 
@@ -979,6 +1048,26 @@ class WorkflowController:
                 queue.extend(story_graph.get_parents(current))
         
         return ancestors
+
+    def _extract_node_story(self, node_id: str) -> str:
+        """从 story.txt 中按 node_id 截取该节点剧情正文。"""
+        story_path = Path(PathConfig.STORY_FILE)
+        if not story_path.exists():
+            return ""
+
+        try:
+            with open(story_path, 'r', encoding='utf-8') as f:
+                content = f.read()
+
+            pattern = rf"=== Node: {re.escape(node_id)} ===(.*?)(=== Node|$)"
+            match = re.search(pattern, content, re.DOTALL)
+            if not match:
+                return ""
+
+            return match.group(1).strip()
+        except Exception as e:
+            logger.warning(f"⚠️ 截取节点 {node_id} 剧情失败: {e}")
+            return ""
     
     def _save_node_story(self, node_id: str, content: str):
         """
