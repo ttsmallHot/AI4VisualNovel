@@ -37,7 +37,8 @@ class DesignerAgent(BaseAgent):
         character_count: int = None,
         requirements: str = "",
         feedback: str = None,
-        previous_game_outline: Dict[str, Any] = None
+        previous_game_outline: Dict[str, Any] = None,
+        locked_characters: Optional[list[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """Step1: 只生成不含 story_graph 的设计大纲。"""
         character_count = character_count or self.config.DEFAULT_CHARACTER_COUNT
@@ -49,6 +50,16 @@ class DesignerAgent(BaseAgent):
             total_nodes=self.config.TOTAL_NODES,
             requirements=requirements if requirements else "无"
         )
+
+        if locked_characters:
+            user_prompt += (
+                "\n\n【用户锁定角色（必须保留）】\n"
+                f"{json.dumps(locked_characters, ensure_ascii=False, indent=2)}"
+                "\n\n规则："
+                "\n1. 这些角色必须出现在最终 characters 数组中，且 id/name 不得修改；"
+                "\n2. 若锁定角色某些字段为空，可以补全；若字段已有值，不得改写；"
+                "\n3. 剩余角色位可自由生成。"
+            )
 
         if feedback and previous_game_outline:
             logger.info("🔧 大纲优化模式：根据反馈修改...")

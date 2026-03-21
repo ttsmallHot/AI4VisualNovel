@@ -58,15 +58,33 @@ Follow these steps to set up your development environment:
 ### 1. Story Generation
 Start the multi-agent collaboration to generate world settings, story graph, scripts, and visual assets. You can provide your requirements via a text file:
 
+`input.yaml` 示例（通过 `--input-file` 指定路径）：
+
+```yaml
+requirements:
+  file_path: data/1.txt
+
+oc:
+  characters:
+    - id: NanamiYu
+      name: 七海优
+      gender: 女
+      is_protagonist: true
+      personality: ""
+      appearance: ""
+      background: ""
+      neutral_image_path: data/images/characters/NanamiYu/neutral.png
+```
+
 ```bash
-# Generate with a requirements file
-python main.py --mode create --requirements-file /your/requirement/file/path
+# Generate with unified input config (requirements + OC)
+python main.py --mode create --input-file input.yaml
 
 # Or generate with empty requirements (AI will decide everything)
 python main.py --mode create
 
 # Or run by phases (recommended)
-python main.py --mode design --requirements-file /your/requirement/file/path
+python main.py --mode design --input-file input.yaml
 python main.py --mode script
 python main.py --mode render
 ```
@@ -79,6 +97,19 @@ Execute the built-in Pygame-based engine to experience the generated story:
 python main.py --mode play
 ```
 *Note: You can also utilize other game engines (e.g., Unity, Ren'Py) to load the formatted data in the `data` folder for a more polished user experience.*
+
+### 3. Export to Ren'Py (Preview)
+Generate a preview `script.rpy` from `data/game_design.json` and `data/story.txt`:
+
+```bash
+# Export Ren'Py project from existing generated data
+python main.py --mode export-renpy
+
+# (Optional) use standalone exporter
+python export_renpy.py --out-dir renpy_export/game
+```
+
+By default this also copies `data/images` to `renpy_export/game/images`.
 
 ### 3. Packaging & Distribution
 If you want to distribute your Pygame masterpiece, build a standalone executable to share your game.

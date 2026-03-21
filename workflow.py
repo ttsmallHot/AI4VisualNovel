@@ -115,7 +115,8 @@ class WorkflowController:
     def run_design_phase(
         self,
         character_count: int = 3,
-        requirements: str = ""
+        requirements: str = "",
+        oc_characters: Optional[List[Dict[str, Any]]] = None
     ) -> Dict[str, Any]:
         """
         阶段 1：设计阶段 (生成游戏大纲、角色设定和背景)
@@ -125,6 +126,16 @@ class WorkflowController:
         logger.info("="*60)
         
         try:
+            raw_oc_characters = oc_characters or []
+            if raw_oc_characters:
+                self._prepare_oc_images(raw_oc_characters)
+
+            normalized_oc = self._normalize_oc_characters(raw_oc_characters)
+            effective_character_count = max(character_count, len(normalized_oc))
+
+            if normalized_oc:
+                logger.info(f"🧩 检测到用户 OC 角色: {len(normalized_oc)} 个（design 阶段将锁定这些角色）")
+
             existing_design = self.producer.load_game_design()
             if existing_design:
                 logger.info(f"✅ 检测到已存在的游戏设计: 《{existing_design['title']}》")
@@ -138,9 +149,12 @@ class WorkflowController:
             # Step1: 生成并审核大纲（无 story_graph）
             # -------------------------
             game_outline = self.designer.generate_game_outline(
-                character_count=character_count,
-                requirements=requirements
+                character_count=effective_character_count,
+                requirements=requirements,
+                locked_characters=normalized_oc
             )
+            if normalized_oc:
+                game_outline = self._apply_oc_characters_to_outline(game_outline, normalized_oc, effective_character_count)
             self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
             logger.info(f"   💾 Step1 已保存（无 story_graph）: {PathConfig.GAME_DESIGN_FILE}")
 
@@ -151,7 +165,7 @@ class WorkflowController:
                     game_outline=game_outline,
                     user_requirements=requirements,
                     expected_nodes=self.designer.config.TOTAL_NODES,
-                    expected_characters=character_count
+                    expected_characters=effective_character_count
                 )
 
                 if outline_feedback == "PASS":
@@ -162,11 +176,14 @@ class WorkflowController:
                 logger.info("   🔧 策划正在根据 Step1 反馈修改大纲...")
                 previous_outline = game_outline
                 game_outline = self.designer.generate_game_outline(
-                    character_count=character_count,
+                    character_count=effective_character_count,
                     requirements=requirements,
                     feedback=outline_feedback,
-                    previous_game_outline=previous_outline
+                    previous_game_outline=previous_outline,
+                    locked_characters=normalized_oc
                 )
+                if normalized_oc:
+                    game_outline = self._apply_oc_characters_to_outline(game_outline, normalized_oc, effective_character_count)
                 self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
                 outline_iteration += 1
 
@@ -216,6 +233,130 @@ class WorkflowController:
         except Exception as e:
             logger.error(f"❌ 设计阶段失败: {e}", exc_info=True)
             raise
+
+    def _prepare_oc_images(self, oc_characters: List[Dict[str, Any]]) -> None:
+        """将 input.yaml 中声明的 OC neutral 图片复制到标准角色目录。"""
+        for item in oc_characters:
+            if not isinstance(item, dict):
+                continue
+
+            char_id = str(item.get("id", "")).strip()
+            char_name = str(item.get("name", "")).strip() or char_id
+            if not char_id:
+                continue
+
+            target_dir = Path(PathConfig.CHARACTERS_DIR) / char_id
+            os.makedirs(target_dir, exist_ok=True)
+
+            neutral_src = str(item.get("neutral_image_path", "")).strip()
+            if neutral_src:
+                self._copy_oc_image(neutral_src, target_dir / "neutral.png", char_name, "neutral")
+
+    @staticmethod
+    def _resolve_oc_source_path(source_path: str) -> Path:
+        """解析 OC 源图片路径（支持相对项目根目录）。"""
+        source = Path(source_path)
+        if source.is_absolute():
+            return source
+        return Path(PathConfig.PROJECT_ROOT) / source
+
+    def _copy_oc_image(self, source_path: str, target_path: Path, char_name: str, label: str) -> None:
+        """复制 OC 图片到目标路径。"""
+        source = self._resolve_oc_source_path(source_path)
+        if not source.exists() or not source.is_file():
+            logger.warning(f"⚠️ OC 图片不存在，跳过: {source_path} ({char_name}/{label})")
+            return
+
+        try:
+            shutil.copy2(source, target_path)
+            logger.info(f"🖼️ 已导入 OC 图片: {char_name}/{label} -> {target_path}")
+        except Exception as e:
+            logger.warning(f"⚠️ 导入 OC 图片失败: {source_path} ({char_name}/{label})，原因: {e}")
+
+    @staticmethod
+    def _normalize_oc_characters(oc_characters: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """标准化并去重 OC 角色（字段与 game_design.characters 保持一致）。"""
+        normalized: List[Dict[str, Any]] = []
+        seen_ids = set()
+
+        for idx, item in enumerate(oc_characters, 1):
+            if not isinstance(item, dict):
+                continue
+
+            char_id = str(item.get("id", "")).strip()
+            name = str(item.get("name", "")).strip()
+
+            if not char_id or not name:
+                logger.warning(f"⚠️ OC 第 {idx} 项缺少 id 或 name，已跳过")
+                continue
+
+            if char_id in seen_ids:
+                logger.warning(f"⚠️ OC 出现重复 id={char_id}，后续项已跳过")
+                continue
+
+            seen_ids.add(char_id)
+            normalized.append({
+                "id": char_id,
+                "name": name,
+                "gender": item.get("gender", ""),
+                "is_protagonist": bool(item.get("is_protagonist", False)),
+                "personality": item.get("personality", ""),
+                "appearance": item.get("appearance", ""),
+                "background": item.get("background", "")
+            })
+
+        return normalized
+
+    @staticmethod
+    def _apply_oc_characters_to_outline(
+        outline: Dict[str, Any],
+        oc_characters: List[Dict[str, Any]],
+        target_character_count: int
+    ) -> Dict[str, Any]:
+        """将 OC 角色注入到大纲角色池中：OC 优先，缺失字段再由生成结果补齐。"""
+        generated_chars = outline.get("characters", []) if isinstance(outline.get("characters", []), list) else []
+
+        generated_by_id = {
+            str(char.get("id", "")).strip(): char
+            for char in generated_chars if isinstance(char, dict) and str(char.get("id", "")).strip()
+        }
+        generated_by_name = {
+            str(char.get("name", "")).strip(): char
+            for char in generated_chars if isinstance(char, dict) and str(char.get("name", "")).strip()
+        }
+
+        merged: List[Dict[str, Any]] = []
+        locked_ids = set()
+
+        for oc in oc_characters:
+            oc_copy = dict(oc)
+            oc_id = str(oc_copy.get("id", "")).strip()
+            oc_name = str(oc_copy.get("name", "")).strip()
+            locked_ids.add(oc_id)
+
+            candidate = generated_by_id.get(oc_id) or generated_by_name.get(oc_name)
+            if candidate:
+                for field in ["gender", "personality", "appearance", "background"]:
+                    if not str(oc_copy.get(field, "")).strip() and str(candidate.get(field, "")).strip():
+                        oc_copy[field] = candidate.get(field, "")
+
+            merged.append(oc_copy)
+
+        for char in generated_chars:
+            if not isinstance(char, dict):
+                continue
+            char_id = str(char.get("id", "")).strip()
+            if not char_id or char_id in locked_ids:
+                continue
+            merged.append(char)
+            if len(merged) >= target_character_count:
+                break
+
+        if merged and not any(bool(c.get("is_protagonist", False)) for c in merged):
+            merged[0]["is_protagonist"] = True
+
+        outline["characters"] = merged
+        return outline
 
     def run_script_phase(self) -> bool:
         """
