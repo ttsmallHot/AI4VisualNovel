@@ -8,18 +8,19 @@ import logging
 import json
 import os
 import shutil
+import threading
 from datetime import datetime
-from typing import Dict, Any, Optional, List
+from typing import Dict, Any, Optional, List, Callable
 import time
 from pathlib import Path
 import re
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from agents.producer_agent import ProducerAgent
 from agents.designer_agent import DesignerAgent
 from agents.artist_agent import ArtistAgent
 from agents.writer_agent import WriterAgent
 from agents.actor_agent import ActorAgent
-from agents.message import Msg
 from agents.config import PathConfig, APIConfig, WriterConfig, DesignerConfig
 from agents.story_graph import StoryGraph
 from game_engine.data import StoryParser
@@ -44,13 +45,11 @@ class WorkflowController:
         self.base_url = None
         self.actors = {}  # 存储所有演员 Agent: {name: ActorAgent}
         self.expressions_db = self._load_expressions()  # 表情库管理
+        self._story_file_lock = threading.Lock()
+        self._expressions_lock = threading.Lock()
+        self._performance_log_lock = threading.Lock()
         
         self.game_design = None
-
-        # 长期记忆滚动压缩配置（可通过环境变量覆盖）
-        self.memory_max_chars = int(os.getenv("MEMORY_MAX_CHARS", "4000"))
-        self.memory_keep_recent_nodes = int(os.getenv("MEMORY_KEEP_RECENT_NODES", "6"))
-        self.memory_compress_target_chars = int(os.getenv("MEMORY_COMPRESS_TARGET_CHARS", "1800"))
         
         logger.info("🎮 工作流控制器初始化")
     
@@ -118,10 +117,62 @@ class WorkflowController:
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False, indent=2)
 
-    @staticmethod
-    def _to_msg(agent_name: str, payload: Any) -> Msg:
-        """将任意 payload 统一包装为 Msg 对象。"""
-        return Msg.from_payload(agent_name, payload)
+    def _save_json_with_log(self, path: str, data: Dict[str, Any], message: str) -> None:
+        self._save_json(path, data)
+        logger.info(message)
+
+    def _generate_outline_with_oc(
+        self,
+        character_count: int,
+        requirements: str,
+        locked_characters: List[Dict[str, Any]],
+        previous_game_outline: Optional[Dict[str, Any]] = None,
+        feedback: Optional[str] = None
+    ) -> Dict[str, Any]:
+        outline = self.designer.generate_game_outline(
+            character_count=character_count,
+            requirements=requirements,
+            feedback=feedback,
+            previous_game_outline=previous_game_outline,
+            locked_characters=locked_characters
+        )
+
+        if locked_characters:
+            outline = self._apply_oc_characters_to_outline(outline, locked_characters, character_count)
+
+        return outline
+
+    def _review_and_revise(
+        self,
+        item: Dict[str, Any],
+        phase_name: str,
+        revise_action: str,
+        max_iterations: int,
+        critique_fn: Callable[[Dict[str, Any]], str],
+        revise_fn: Callable[[Dict[str, Any], str], Dict[str, Any]],
+        save_fn: Optional[Callable[[Dict[str, Any]], None]] = None
+    ) -> Dict[str, Any]:
+        """通用审核-修订循环：Producer 审核，不通过则 Designer 修订。"""
+        iteration = 0
+        while iteration < max_iterations:
+            logger.info(f"   📋 制作人正在审核{phase_name} (第 {iteration + 1} 轮)...")
+            feedback = critique_fn(item)
+
+            if feedback == "PASS":
+                logger.info(f"   ✅ {phase_name}审核通过")
+                return item
+
+            logger.info(f"   ⚠️ {phase_name}反馈: {feedback[:100]}...")
+            logger.info(f"   🔧 策划正在根据{phase_name}反馈{revise_action}...")
+            item = revise_fn(item, feedback)
+
+            if save_fn:
+                save_fn(item)
+
+            iteration += 1
+
+        logger.warning(f"   ⚠️ {phase_name}达到最大审核次数，制作人强制批准当前结果继续。")
+        return item
     
     def run_design_phase(
         self,
@@ -154,120 +205,75 @@ class WorkflowController:
                 return self.game_design
             
             logger.info("   未找到游戏设计，策划开始草拟方案...")
-            max_iterations = 10
+            max_iterations = 3
 
             # -------------------------
             # Step1: 生成并审核大纲（无 story_graph）
             # -------------------------
-            design_request = self._to_msg("Workflow", {
-                "character_count": effective_character_count,
-                "requirements": requirements,
-                "locked_characters": normalized_oc
-            })
-            game_outline = self.designer.generate_game_outline(
-                character_count=design_request.content["character_count"],
-                requirements=design_request.content["requirements"],
-                locked_characters=design_request.content["locked_characters"]
+            game_outline = self._generate_outline_with_oc(
+                character_count=effective_character_count,
+                requirements=requirements,
+                locked_characters=normalized_oc
             )
-            game_outline = self._to_msg("Designer", game_outline).content
-            if normalized_oc:
-                game_outline = self._apply_oc_characters_to_outline(game_outline, normalized_oc, effective_character_count)
-            self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
-            logger.info(f"   💾 Step1 已保存（无 story_graph）: {PathConfig.GAME_DESIGN_FILE}")
-
-            outline_iteration = 0
-            while outline_iteration < max_iterations:
-                logger.info(f"   📋 制作人正在审核 Step1 大纲 (第 {outline_iteration + 1} 轮)...")
-                critique_request = self._to_msg("Workflow", {
-                    "game_outline": game_outline,
-                    "user_requirements": requirements,
-                    "expected_nodes": self.designer.config.TOTAL_NODES,
-                    "expected_characters": effective_character_count
-                })
-                outline_feedback = self.producer.critique_game_outline(
-                    game_outline=critique_request.content["game_outline"],
-                    user_requirements=critique_request.content["user_requirements"],
-                    expected_nodes=critique_request.content["expected_nodes"],
-                    expected_characters=critique_request.content["expected_characters"]
+            self._save_json_with_log(
+                PathConfig.GAME_DESIGN_FILE,
+                game_outline,
+                f"   💾 Step1 已保存（无 story_graph）: {PathConfig.GAME_DESIGN_FILE}"
+            )
+            game_outline = self._review_and_revise(
+                item=game_outline,
+                phase_name="Step1 大纲",
+                revise_action="修改大纲",
+                max_iterations=max_iterations,
+                critique_fn=lambda current_outline: self.producer.critique_game_outline(
+                    game_outline=current_outline,
+                    user_requirements=requirements,
+                    expected_nodes=self.designer.config.TOTAL_NODES,
+                    expected_characters=effective_character_count
+                ),
+                revise_fn=lambda current_outline, feedback: self._generate_outline_with_oc(
+                        character_count=effective_character_count,
+                        requirements=requirements,
+                        locked_characters=normalized_oc,
+                        previous_game_outline=current_outline,
+                        feedback=feedback,
+                    ),
+                save_fn=lambda updated_outline: self._save_json_with_log(
+                    PathConfig.GAME_DESIGN_FILE,
+                    updated_outline,
+                    f"   💾 Step1 更新已保存: {PathConfig.GAME_DESIGN_FILE}"
                 )
-                outline_feedback = str(self._to_msg("Producer", {"feedback": outline_feedback}).content.get("feedback", ""))
-
-                if outline_feedback == "PASS":
-                    logger.info("   ✅ Step1 大纲审核通过")
-                    break
-
-                logger.info(f"   ⚠️ Step1 反馈: {outline_feedback[:100]}...")
-                logger.info("   🔧 策划正在根据 Step1 反馈修改大纲...")
-                previous_outline = game_outline
-                revise_request = self._to_msg("Workflow", {
-                    "character_count": effective_character_count,
-                    "requirements": requirements,
-                    "feedback": outline_feedback,
-                    "previous_game_outline": previous_outline,
-                    "locked_characters": normalized_oc
-                })
-                game_outline = self.designer.generate_game_outline(
-                    character_count=revise_request.content["character_count"],
-                    requirements=revise_request.content["requirements"],
-                    feedback=revise_request.content["feedback"],
-                    previous_game_outline=revise_request.content["previous_game_outline"],
-                    locked_characters=revise_request.content["locked_characters"]
-                )
-                game_outline = self._to_msg("Designer", game_outline).content
-                if normalized_oc:
-                    game_outline = self._apply_oc_characters_to_outline(game_outline, normalized_oc, effective_character_count)
-                self._save_json(PathConfig.GAME_DESIGN_FILE, game_outline)
-                outline_iteration += 1
-
-            if outline_iteration >= max_iterations:
-                logger.warning("   ⚠️ Step1 达到最大审核次数，制作人强制批准当前大纲继续。")
+            )
 
             # -------------------------
             # Step2: 基于通过大纲生成并审核 story_graph
             # -------------------------
-            story_graph_request = self._to_msg("Workflow", {"game_outline": game_outline})
-            story_graph = self.designer.generate_story_graph_from_outline(story_graph_request.content["game_outline"])
-            story_graph = self._to_msg("Designer", story_graph).content
-            self._save_json(PathConfig.STORY_GRAPH_FILE, story_graph)
-            logger.info(f"   💾 Step2 已保存 story_graph: {PathConfig.STORY_GRAPH_FILE}")
-
-            graph_iteration = 0
-            while graph_iteration < max_iterations:
-                logger.info(f"   📋 制作人正在审核 Step2 story_graph (第 {graph_iteration + 1} 轮)...")
-                graph_critique_request = self._to_msg("Workflow", {
-                    "story_graph": story_graph,
-                    "game_outline": game_outline,
-                    "expected_nodes": self.designer.config.TOTAL_NODES
-                })
-                graph_feedback = self.producer.critique_story_graph(
-                    story_graph=graph_critique_request.content["story_graph"],
-                    game_outline=graph_critique_request.content["game_outline"],
-                    expected_nodes=graph_critique_request.content["expected_nodes"]
+            story_graph = self.designer.generate_story_graph_from_outline(game_outline)
+            self._save_json_with_log(
+                PathConfig.STORY_GRAPH_FILE,
+                story_graph,
+                f"   💾 Step2 已保存 story_graph: {PathConfig.STORY_GRAPH_FILE}"
+            )
+            story_graph = self._review_and_revise(
+                item=story_graph,
+                phase_name="Step2 story_graph",
+                revise_action="修正 story_graph",
+                max_iterations=max_iterations,
+                critique_fn=lambda current_graph: self.producer.critique_story_graph(
+                    story_graph=current_graph,
+                    game_outline=game_outline,
+                    expected_nodes=self.designer.config.TOTAL_NODES
+                ),
+                revise_fn=lambda _current_graph, feedback: self.designer.generate_story_graph_from_outline(
+                    game_outline,
+                    feedback=feedback
+                ),
+                save_fn=lambda updated_graph: self._save_json_with_log(
+                    PathConfig.STORY_GRAPH_FILE,
+                    updated_graph,
+                    f"   💾 Step2 更新已保存: {PathConfig.STORY_GRAPH_FILE}"
                 )
-                graph_feedback = str(self._to_msg("Producer", {"feedback": graph_feedback}).content.get("feedback", ""))
-
-                if graph_feedback == "PASS":
-                    logger.info("   ✅ Step2 story_graph 审核通过")
-                    break
-
-                logger.info(f"   ⚠️ Step2 反馈: {graph_feedback[:100]}...")
-                logger.info("   🔧 策划正在根据 Step2 反馈修正 story_graph...")
-                graph_revise_request = self._to_msg("Workflow", {
-                    "game_outline": game_outline,
-                    "feedback": graph_feedback,
-                    "previous_story_graph": story_graph
-                })
-                story_graph = self.designer.generate_story_graph_from_outline(
-                    graph_revise_request.content["game_outline"],
-                    feedback=graph_revise_request.content["feedback"],
-                    previous_story_graph=graph_revise_request.content["previous_story_graph"]
-                )
-                story_graph = self._to_msg("Designer", story_graph).content
-                self._save_json(PathConfig.STORY_GRAPH_FILE, story_graph)
-                graph_iteration += 1
-
-            if graph_iteration >= max_iterations:
-                logger.warning("   ⚠️ Step2 达到最大审核次数，制作人强制批准当前图结构继续。")
+            )
 
             # 合并成完整 game_design
             self.game_design = game_outline
@@ -457,15 +463,10 @@ class WorkflowController:
             # 第一步：场景渲染
             logger.info("   🎨 开始渲染场景背景...")
             locations = [scene['name'] for scene in self.game_design.get('scenes', [])]
-            bg_request = self._to_msg("Workflow", {
-                "locations": locations,
-                "story_background": self.game_design.get('background'),
-                "art_style": self.game_design.get('art_style')
-            })
-            bg_result = self.artist.generate_all_backgrounds(
-                bg_request.content["locations"],
-                story_background=bg_request.content["story_background"],
-                art_style=bg_request.content["art_style"]
+            self.artist.generate_all_backgrounds(
+                locations,
+                story_background=self.game_design.get('background'),
+                art_style=self.game_design.get('art_style')
             )
             
             # 第二步：角色立绘渲染
@@ -490,15 +491,10 @@ class WorkflowController:
                         except OSError:
                             pass
 
-            title_request = self._to_msg("Workflow", {
-                "title": self.game_design.get('title', 'My Visual Novel'),
-                "background_desc": self.game_design.get('background', 'A romantic story'),
-                "character_images": character_ref_images
-            })
-            title_result = self.artist.generate_title_image(
-                title=title_request.content["title"],
-                background_desc=title_request.content["background_desc"],
-                character_images=title_request.content["character_images"]
+            self.artist.generate_title_image(
+                title=self.game_design.get('title', 'My Visual Novel'),
+                background_desc=self.game_design.get('background', 'A romantic story'),
+                character_images=character_ref_images
             )
             
             logger.info("\n" + "="*60)
@@ -546,23 +542,14 @@ class WorkflowController:
                 ref_paths.append(previous_attempt_path)
             
             # 生成图片
-            render_request = self._to_msg("Workflow", {
-                "character": actor.character_info,
-                "expressions": [expression],
-                "feedback": feedback,
-                "reference_image_paths": ref_paths if ref_paths else None,
-                "story_background": self.game_design.get('background'),
-                "art_style": self.game_design.get('art_style')
-            })
             generated_paths = self.artist.generate_character_images(
-                character=render_request.content["character"],
-                expressions=render_request.content["expressions"],
-                feedback=render_request.content["feedback"],
-                reference_image_paths=render_request.content["reference_image_paths"],
-                story_background=render_request.content["story_background"],
-                art_style=render_request.content["art_style"]
+                character=actor.character_info,
+                expressions=[expression],
+                feedback=feedback,
+                reference_image_paths=ref_paths if ref_paths else None,
+                story_background=self.game_design.get('background'),
+                art_style=self.game_design.get('art_style')
             )
-            generated_paths = self._to_msg("Artist", generated_paths).content
             
             image_path = generated_paths.get(expression)
             if not image_path:
@@ -570,21 +557,13 @@ class WorkflowController:
                 return None
                 
             # 审核图片
-            critique_request = self._to_msg("Workflow", {
-                "image_path": image_path,
-                "expression": expression,
-                "reference_image_path": reference_image_path,
-                "story_background": self.game_design.get('background'),
-                "art_style": self.game_design.get('art_style')
-            })
             critique_result = actor.critique_visual(
-                image_path=critique_request.content["image_path"],
-                expression=critique_request.content["expression"],
-                reference_image_path=critique_request.content["reference_image_path"],
-                story_background=critique_request.content["story_background"],
-                art_style=critique_request.content["art_style"]
+                image_path=image_path, 
+                expression=expression,
+                reference_image_path=reference_image_path,  # 审核时仍用neutral作为参考
+                story_background=self.game_design.get('background'),
+                art_style=self.game_design.get('art_style')
             )
-            critique_result = str(self._to_msg("Actor", {"result": critique_result}).content.get("result", ""))
             
             if critique_result == "PASS":
                 logger.info(f"      ✅ 审核通过: {expression}")
@@ -632,6 +611,8 @@ class WorkflowController:
                 if current_try >= max_retries:
                     logger.warning(f"      ⚠️  达到最大重试次数，保留最后一次生成的图片用于游戏")
                     return image_path
+        
+        return None
         
         return None
 
@@ -741,15 +722,7 @@ class WorkflowController:
                 logger.info(f"         🎨 生成 {expr}...")
                 
                 # 让 Actor 描述这个表情
-                description_request = self._to_msg("Workflow", {
-                    "expression": expr,
-                    "neutral_image_path": ref_path
-                })
-                description = actor.generate_expression_description(
-                    description_request.content["expression"],
-                    neutral_image_path=description_request.content["neutral_image_path"]
-                )
-                description = str(self._to_msg("Actor", {"description": description}).content.get("description", ""))
+                description = actor.generate_expression_description(expr)
                 additional_feedback = f"Expression description: {description}"
                 
                 # 使用审核循环生成
@@ -826,299 +799,272 @@ class WorkflowController:
     def _generate_full_story(self):
         """生成完整的故事（支持树和DAG结构）"""
         try:
-            # 创建故事图对象（自动兼容树和DAG）
             story_graph = StoryGraph(self.game_design)
-            
-            # 验证图结构
+
             is_valid, error_msg = story_graph.validate()
             if not is_valid:
                 logger.error(f"❌ 故事图验证失败: {error_msg}")
                 return
-            
-            # 使用拓扑排序确定生成顺序
+
             node_order = story_graph.topological_sort()
             logger.info(f"📋 故事图包含 {len(node_order)} 个节点")
-            
-            # 节点摘要和内容缓存
-            node_summaries = {}
-            
-            for idx, node_id in enumerate(node_order, 1):
-                node_info = story_graph.get_node(node_id)
-                logger.info(f"\n📅 [{idx}/{len(node_order)}] 正在制作节点: {node_id}")
-                
-                # 检查是否已存在
-                node_exists = False
-                node_content = self._extract_node_story(node_id)
-                if node_content:
-                    node_exists = True
-                    logger.info(f"   ⏭️ 节点剧情已存在，跳过生成")
-                    if node_id not in node_summaries:
-                        summary_request = self._to_msg("Workflow", {"story_content": node_content})
-                        node_summary = self.writer.summarize_story(summary_request.content["story_content"])
-                        node_summary = str(self._to_msg("Writer", {"summary": node_summary}).content.get("summary", ""))
-                        node_summaries[node_id] = node_summary
-                
-                if not node_exists:
-                    # 构建上下文（支持多父节点）
-                    parents = story_graph.get_parents(node_id)
-                    
-                    # 长期记忆：祖先节点摘要
-                    long_term_memory = self._build_long_term_memory(
-                        node_id, story_graph, node_summaries
+
+            layers = self._build_topological_layers(story_graph, node_order)
+            node_summaries: Dict[str, str] = {}
+
+            generated_count = 0
+            for layer_idx, layer_nodes in enumerate(layers, 1):
+                logger.info(f"\n🚦 [层 {layer_idx}/{len(layers)}] 节点: {layer_nodes}")
+
+                nodes_to_generate: List[str] = []
+                for node_id in layer_nodes:
+                    node_content = self._extract_node_story(node_id)
+                    if node_content:
+                        logger.info(f"   ⏭️ 节点剧情已存在，跳过生成: {node_id}")
+                        if node_id not in node_summaries:
+                            node_summaries[node_id] = self.writer.summarize_story(node_content)
+                        continue
+                    nodes_to_generate.append(node_id)
+
+                if not nodes_to_generate:
+                    continue
+
+                layer_inputs = dict(node_summaries)
+                layer_outputs: Dict[str, str] = {}
+                max_workers = min(4, len(nodes_to_generate))
+
+                if max_workers == 1:
+                    node_id = nodes_to_generate[0]
+                    node_info = story_graph.get_node(node_id)
+                    layer_outputs[node_id] = self._generate_node_script(
+                        node_id=node_id,
+                        node_info=node_info,
+                        story_graph=story_graph,
+                        node_summaries=layer_inputs
                     )
-                    
-                    # 短期记忆：父节点完整内容
-                    short_term_memory = ""
-                    if parents:
-                        if len(parents) > 1:
-                            # Merge：拼接所有父节点完整内容
-                            path_texts = []
-                            for i, parent_id in enumerate(parents, 1):
-                                parent_content = self._extract_node_story(parent_id)
-                                if not parent_content:
-                                    raise ValueError(f"Merge 节点 {node_id} 缺少父节点 {parent_id} 的完整内容")
-                                path_texts.append(f"【路径{i} - 父节点 {parent_id} 完整内容】\n{parent_content}")
+                else:
+                    logger.info(f"   ⚡ 同层并行生成: {len(nodes_to_generate)} 个节点 (workers={max_workers})")
+                    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+                        futures = {
+                            executor.submit(
+                                self._generate_node_script,
+                                node_id,
+                                story_graph.get_node(node_id),
+                                story_graph,
+                                layer_inputs
+                            ): node_id
+                            for node_id in nodes_to_generate
+                        }
+                        for future in as_completed(futures):
+                            node_id = futures[future]
+                            try:
+                                layer_outputs[node_id] = future.result()
+                            except Exception as ex:
+                                logger.error(f"❌ 节点 {node_id} 并行生成失败: {ex}", exc_info=True)
 
-                            short_term_memory = (
-                                "多条剧情路径在此汇合，请结合各父节点内容继续故事：\n" +
-                                "\n\n".join(path_texts)
-                            )
-                        else:
-                            # 普通节点：直接父节点完整内容
-                            parent_contents = []
-                            for parent_id in parents:
-                                parent_content = self._extract_node_story(parent_id)
-                                if parent_content:
-                                    parent_contents.append(parent_content)
-                            short_term_memory = "\n\n".join(parent_contents)
+                for node_id in nodes_to_generate:
+                    if node_id not in layer_outputs:
+                        continue
 
-                    if short_term_memory:
-                        self.writer.add_short_term_memory(short_term_memory)
-
-                    writer_short_memory_context = self.writer.get_memory_context()
-                    if writer_short_memory_context:
-                        full_context = f"{long_term_memory}\n\n{writer_short_memory_context}"
+                    polished_script = layer_outputs[node_id]
+                    self._save_node_story(node_id, polished_script)
+                    saved_node_content = self._extract_node_story(node_id)
+                    if saved_node_content:
+                        node_summaries[node_id] = self.writer.summarize_story(saved_node_content)
                     else:
-                        full_context = f"{long_term_memory}\n\n【最近剧情】:\n{short_term_memory}"
-                    
-                    # 生成剧情
-                    plot_summary = node_info.get('summary', '')
-                    
-                    present_actors = list(self.actors.items())  # 直接用全体角色
-                    
-                    if present_actors:
-                        # ==================== 第一步：拆分剧情片段 ====================
-                        logger.info(f"✂️  正在切分节点 {node_id} 的剧情片段...")
-                        available_scenes = [scene['name'] for scene in self.game_design.get('scenes', [])]
-                        # 获取完整的角色信息
-                        available_characters = self.game_design.get('characters', [])
-                        
-                        split_request = self._to_msg("Workflow", {
-                            "node_summary": plot_summary,
-                            "long_term_memory": long_term_memory,
-                            "available_scenes": available_scenes,
-                            "available_characters": available_characters,
-                            "segment_count": DesignerConfig.PLOT_SEGMENTS_PER_NODE
-                        })
-                        plots = self.writer.split_node_into_plots(
-                            node_summary=split_request.content["node_summary"],
-                            long_term_memory=split_request.content["long_term_memory"],
-                            available_scenes=split_request.content["available_scenes"],
-                            available_characters=split_request.content["available_characters"],
-                            segment_count=split_request.content["segment_count"]
-                        )
-                        plots = self._to_msg("Writer", plots).content.get("value", plots)
-                        
-                        if not plots:
-                            logger.warning(f"⚠️ 节点 {node_id} 剧情切分失败，使用原始概要")
-                            plots = [{"id": 1, "summary": plot_summary}]
-                        
-                        logger.info(f"✅ 已切分为 {len(plots)} 个片段")
-                        
-                        # ==================== 第二步：对每个片段进行表演循环 ====================
-                        all_plot_contexts = []
-                        performance_log_path = os.path.join(PathConfig.TEXT_LOG_DIR, f"performance_{node_id}.jsonl")
-                        
-                        # 清理旧的表演日志（如果存在），确保重新生成时覆盖
-                        if os.path.exists(performance_log_path):
-                            os.remove(performance_log_path)
-                            logger.info(f"🗑️  已清理节点 {node_id} 的旧表演日志")
-                        
-                        for plot_idx, plot_info in enumerate(plots, 1):
-                            plot_id = plot_info.get('id', plot_idx)
-                            current_plot_summary = plot_info.get('summary', plot_summary)
+                        logger.warning(f"⚠️ 节点 {node_id} 保存后未能从 story.txt 截取到内容，回退使用内存文本")
+                        node_summaries[node_id] = self.writer.summarize_story(polished_script)
 
-                            self.writer.add_short_term_memory(f"片段目标: {current_plot_summary}")
-                            
-                            logger.info(f"🎬 执行片段 {plot_idx}/{len(plots)}: {current_plot_summary[:50]}...")
-                            
-                            # 该片段的对话累积缓冲
-                            plot_current_context = ""
-                            turn_count = 0
-                            safety_limit = 50  # 安全限制固定为50轮
-                            speaker_retry_count = 0  # 导演重试计数
-                            max_speaker_retries = 3
-                            
-                            # 构建该片段的上下文：全局历史 + 前面的片段内容
-                            previous_plots_context = "\n\n".join(all_plot_contexts) if all_plot_contexts else ""
-                            plot_full_context = full_context
-                            if previous_plots_context:
-                                plot_full_context += f"\n\n【前面的片段】:\n{previous_plots_context}"
-                            
-                            while turn_count < safety_limit:
-                                current_total_context = f"{plot_full_context}\n\n【当前片段对话】:\n{plot_current_context}"
-
-                                writer_turn_memory = self.writer.get_memory_context()
-                                if writer_turn_memory:
-                                    current_total_context += f"\n\n{writer_turn_memory}"
-
-                                # 从 ActorAgent 中提取角色信息字典
-                                present_char_info = [actor.character_info for _, actor in present_actors]
-                                speaker_request = self._to_msg("Workflow", {
-                                    "plot_summary": current_plot_summary,
-                                    "characters": present_char_info,
-                                    "story_context": current_total_context
-                                })
-                                next_speaker_name, plot_guidance = self.writer.decide_next_speaker(
-                                    plot_summary=speaker_request.content["plot_summary"],
-                                    characters=speaker_request.content["characters"],
-                                    story_context=speaker_request.content["story_context"]
-                                )
-                                director_msg = self._to_msg("Writer", {
-                                    "next_speaker": next_speaker_name,
-                                    "guidance": plot_guidance
-                                })
-                                next_speaker_name = str(director_msg.content.get("next_speaker", ""))
-                                plot_guidance = str(director_msg.content.get("guidance", ""))
-                                
-                                if "STOP" in next_speaker_name:
-                                    logger.info(f"🎬 片段 {plot_idx} 的导演喊卡")
-                                    break
-                                
-                                next_actor = None
-                                next_char_name = ""
-                                for name, agent in present_actors:
-                                    if name in next_speaker_name or next_speaker_name in name:
-                                        next_actor = agent
-                                        next_char_name = name
-                                        break
-                                
-                                if not next_actor:
-                                    speaker_retry_count += 1
-                                    logger.warning(f"⚠️ 导演指定了未知角色: {next_speaker_name}，重新指定发言者 (重试 {speaker_retry_count}/{max_speaker_retries})...")
-                                    if speaker_retry_count < max_speaker_retries:
-                                        # 继续循环，让导演重新决策
-                                        continue
-                                    else:
-                                        logger.warning(f"⚠️ 导演在 {max_speaker_retries} 次重试后仍未指定有效角色，结束本片段对话")
-                                        break
-                                
-                                # 成功获取有效角色，重置重试计数
-                                speaker_retry_count = 0
-                                
-                                # 构建其他角色的完整信息
-                                other_chars = [
-                                    actor.character_info for char_name, actor in present_actors
-                                    if char_name != next_char_name
-                                ]
-                                available_expressions = self._get_expressions_str(next_char_name)
-                                
-                                enhanced_plot_summary = current_plot_summary
-                                if plot_guidance:
-                                    enhanced_plot_summary += f"\n【导演指导】{plot_guidance}"
-                                
-                                perform_request = self._to_msg("Workflow", {
-                                    "plot_summary": enhanced_plot_summary,
-                                    "other_characters": other_chars,
-                                    "story_context": current_total_context,
-                                    "character_expressions": available_expressions
-                                })
-                                performance = next_actor.perform_plot(
-                                    plot_summary=perform_request.content["plot_summary"],
-                                    other_characters=perform_request.content["other_characters"],
-                                    story_context=perform_request.content["story_context"],
-                                    character_expressions=perform_request.content["character_expressions"]
-                                )
-                                performance = str(self._to_msg("Actor", {"performance": performance}).content.get("performance", ""))
-                                
-                                # 记录演员表演
-                                self._log_performance(performance_log_path, {
-                                    "node_id": node_id,
-                                    "plot_id": plot_id,
-                                    "character": next_char_name,
-                                    "content": performance
-                                })
-                                
-                                if performance.strip():
-                                    plot_current_context += f"{performance}\n"
-                                    self.writer.add_short_term_memory(performance)
-                                    next_actor.add_short_term_memory(performance)
-                                    self._update_character_expressions(next_char_name, performance)
-                                    turn_count += 1
-                                else:
-                                    break
-                            
-                            all_plot_contexts.append(plot_current_context)
-                            logger.info(f"✅ 片段 {plot_idx} 完成 ({turn_count} 轮对话)")
-                        
-                        # ==================== 第三步：整合所有片段成完整剧本 ====================
-                        logger.info(f"✍️  Writer 正在整合节点 {node_id} 的所有片段...")
-                        
-                        # 所有片段的完整对话
-                        current_context = "\n\n".join(all_plot_contexts)
-                        
-                        # 获取选项信息
-                        children = story_graph.get_children(node_id)
-                        # 仅在真正分支（2个及以上子节点）时生成可见选项
-                        choices_data = []
-                        if len(children) > 1:
-                            choices_data = [{"target": child_id, "text": choice_text} for child_id, choice_text in children]
-                        
-                        # 调用 writer 润色整合
-                        synthesis_request = self._to_msg("Workflow", {
-                            "plot_performances": [{"content": current_context}],
-                            "choices": choices_data,
-                            "story_context": full_context,
-                            "available_scenes": available_scenes,
-                            "available_characters": available_characters
-                        })
-                        polished_script = self.writer.synthesize_script(
-                            plot_performances=synthesis_request.content["plot_performances"],
-                            choices=synthesis_request.content["choices"],
-                            story_context=synthesis_request.content["story_context"],
-                            available_scenes=synthesis_request.content["available_scenes"],
-                            available_characters=synthesis_request.content["available_characters"]
-                        )
-                        polished_script = str(self._to_msg("Writer", {"script": polished_script}).content.get("script", ""))
-
-                        # 单一路径节点：不显示选项，改为自动跳转到唯一子节点
-                        if len(children) == 1:
-                            next_node_id, _ = children[0]
-                            jump_tag = f"<jump target=\"{next_node_id}\"/>"
-                            if jump_tag not in polished_script:
-                                polished_script = polished_script.rstrip() + f"\n\n{jump_tag}\n"
-                        
-                        # 保存润色后的剧本
-                        self._save_node_story(node_id, polished_script)
-                        saved_node_content = self._extract_node_story(node_id)
-                        if saved_node_content:
-                            saved_summary_request = self._to_msg("Workflow", {"story_content": saved_node_content})
-                            node_summary = self.writer.summarize_story(saved_summary_request.content["story_content"])
-                            node_summary = str(self._to_msg("Writer", {"summary": node_summary}).content.get("summary", ""))
-                            node_summaries[node_id] = node_summary
-                        else:
-                            logger.warning(f"⚠️ 节点 {node_id} 保存后未能从 story.txt 截取到内容，回退使用内存文本")
-                            fallback_summary_request = self._to_msg("Workflow", {"story_content": polished_script})
-                            node_summary = self.writer.summarize_story(fallback_summary_request.content["story_content"])
-                            node_summary = str(self._to_msg("Writer", {"summary": node_summary}).content.get("summary", ""))
-                            node_summaries[node_id] = node_summary
-                    
+                    generated_count += 1
                     logger.info(f"✅ 节点 {node_id} 剧情生成完成")
-            
-            logger.info("\n🎉 完整故事生成完成！")
+
+            logger.info(f"\n🎉 完整故事生成完成！本次新生成节点数: {generated_count}")
             
         except Exception as e:
             logger.error(f"❌ 故事生成失败: {e}", exc_info=True)
+
+    def _build_topological_layers(self, story_graph: 'StoryGraph', node_order: List[str]) -> List[List[str]]:
+        """将 DAG 按拓扑层切分：同层可并行，层间保持依赖顺序。"""
+        order_index = {node_id: idx for idx, node_id in enumerate(node_order)}
+        indegree = {node_id: len(story_graph.get_parents(node_id)) for node_id in node_order}
+        current_layer = sorted([node_id for node_id, degree in indegree.items() if degree == 0], key=order_index.get)
+
+        layers: List[List[str]] = []
+        while current_layer:
+            layers.append(current_layer)
+            next_layer: List[str] = []
+
+            for node_id in current_layer:
+                for child_id, _ in story_graph.get_children(node_id):
+                    if child_id not in indegree:
+                        continue
+                    indegree[child_id] -= 1
+                    if indegree[child_id] == 0:
+                        next_layer.append(child_id)
+
+            current_layer = sorted(next_layer, key=order_index.get)
+
+        return layers
+
+    def _generate_node_script(
+        self,
+        node_id: str,
+        node_info: Dict[str, Any],
+        story_graph: 'StoryGraph',
+        node_summaries: Dict[str, str]
+    ) -> str:
+        """生成单个节点剧本（不落盘）。"""
+        logger.info(f"\n📅 正在制作节点: {node_id}")
+
+        parents = story_graph.get_parents(node_id)
+        long_term_memory = self._build_long_term_memory(node_id, story_graph, node_summaries)
+
+        short_term_memory = ""
+        if parents:
+            if len(parents) > 1:
+                parent_summaries = [
+                    f"【路径{i + 1}】{node_summaries.get(parent_id, '(无摘要)')}"
+                    for i, parent_id in enumerate(parents)
+                    if parent_id in node_summaries
+                ]
+                short_term_memory = "多条剧情路径在此汇合，请基于公共记忆继续故事：\n" + "\n".join(parent_summaries)
+            else:
+                parent_contents = []
+                for parent_id in parents:
+                    parent_content = self._extract_node_story(parent_id)
+                    if parent_content:
+                        parent_contents.append(parent_content)
+                short_term_memory = "\n\n".join(parent_contents)
+
+        if short_term_memory:
+            full_context = f"{long_term_memory}\n\n【最近剧情】:\n{short_term_memory}"
+        else:
+            full_context = long_term_memory
+
+        plot_summary = node_info.get('summary', '')
+        present_actors = list(self.actors.items())
+        if not present_actors:
+            return plot_summary
+
+        available_scenes = [scene['name'] for scene in self.game_design.get('scenes', [])]
+        available_characters = self.game_design.get('characters', [])
+
+        plots = self.writer.split_node_into_plots(
+            node_summary=plot_summary,
+            long_term_memory=long_term_memory,
+            available_scenes=available_scenes,
+            available_characters=available_characters,
+            segment_count=DesignerConfig.PLOT_SEGMENTS_PER_NODE
+        )
+
+        if not plots:
+            logger.warning(f"⚠️ 节点 {node_id} 剧情切分失败，使用原始概要")
+            plots = [{"id": 1, "summary": plot_summary}]
+
+        logger.info(f"✅ 节点 {node_id} 已切分为 {len(plots)} 个片段")
+
+        all_plot_contexts = []
+        performance_log_path = os.path.join(PathConfig.TEXT_LOG_DIR, f"performance_{node_id}.jsonl")
+        if os.path.exists(performance_log_path):
+            os.remove(performance_log_path)
+
+        for plot_idx, plot_info in enumerate(plots, 1):
+            plot_id = plot_info.get('id', plot_idx)
+            current_plot_summary = plot_info.get('summary', plot_summary)
+
+            plot_current_context = ""
+            turn_count = 0
+            safety_limit = 50
+            speaker_retry_count = 0
+            max_speaker_retries = 3
+
+            previous_plots_context = "\n\n".join(all_plot_contexts) if all_plot_contexts else ""
+            plot_full_context = full_context
+            if previous_plots_context:
+                plot_full_context += f"\n\n【前面的片段】:\n{previous_plots_context}"
+
+            while turn_count < safety_limit:
+                current_total_context = f"{plot_full_context}\n\n【当前片段对话】:\n{plot_current_context}"
+
+                present_char_info = [actor.character_info for _, actor in present_actors]
+                next_speaker_name, plot_guidance = self.writer.decide_next_speaker(
+                    plot_summary=current_plot_summary,
+                    characters=present_char_info,
+                    story_context=current_total_context
+                )
+
+                if "STOP" in next_speaker_name:
+                    break
+
+                next_actor = None
+                next_char_name = ""
+                for name, agent in present_actors:
+                    if name in next_speaker_name or next_speaker_name in name:
+                        next_actor = agent
+                        next_char_name = name
+                        break
+
+                if not next_actor:
+                    speaker_retry_count += 1
+                    if speaker_retry_count < max_speaker_retries:
+                        continue
+                    break
+
+                speaker_retry_count = 0
+                other_chars = [
+                    actor.character_info for char_name, actor in present_actors
+                    if char_name != next_char_name
+                ]
+                available_expressions = self._get_expressions_str(next_char_name)
+
+                enhanced_plot_summary = current_plot_summary
+                if plot_guidance:
+                    enhanced_plot_summary += f"\n【导演指导】{plot_guidance}"
+
+                performance = next_actor.perform_plot(
+                    plot_summary=enhanced_plot_summary,
+                    other_characters=other_chars,
+                    story_context=current_total_context,
+                    character_expressions=available_expressions
+                )
+
+                self._log_performance(performance_log_path, {
+                    "node_id": node_id,
+                    "plot_id": plot_id,
+                    "character": next_char_name,
+                    "content": performance
+                })
+
+                if performance.strip():
+                    plot_current_context += f"{performance}\n"
+                    self._update_character_expressions(next_char_name, performance)
+                    turn_count += 1
+                else:
+                    break
+
+            all_plot_contexts.append(plot_current_context)
+
+        current_context = "\n\n".join(all_plot_contexts)
+        children = story_graph.get_children(node_id)
+        choices_data = []
+        if len(children) > 1:
+            choices_data = [{"target": child_id, "text": choice_text} for child_id, choice_text in children]
+
+        polished_script = self.writer.synthesize_script(
+            plot_performances=[{"content": current_context}],
+            choices=choices_data,
+            story_context=full_context,
+            available_scenes=available_scenes,
+            available_characters=available_characters
+        )
+
+        if len(children) == 1:
+            next_node_id, _ = children[0]
+            jump_tag = f"<jump target=\"{next_node_id}\"/>"
+            if jump_tag not in polished_script:
+                polished_script = polished_script.rstrip() + f"\n\n{jump_tag}\n"
+
+        return polished_script
 
     def load_existing_game(self) -> bool:
         """加载已存在的游戏数据"""
@@ -1155,8 +1101,9 @@ class WorkflowController:
         """保存表情库到文件"""
         expr_file = os.path.join(PathConfig.DATA_DIR, "character_expressions.json")
         try:
-            with open(expr_file, 'w', encoding='utf-8') as f:
-                json.dump(self.expressions_db, f, ensure_ascii=False, indent=2)
+            with self._expressions_lock:
+                with open(expr_file, 'w', encoding='utf-8') as f:
+                    json.dump(self.expressions_db, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"❌ 保存表情库失败: {e}")
 
@@ -1175,17 +1122,21 @@ class WorkflowController:
         Returns:
             新增的表情列表
         """
-        current_expressions = set(self._get_character_expressions(character_name))
-        new_expressions = [expr for expr in expressions if expr not in current_expressions]
-        
-        if new_expressions:
-            if character_name not in self.expressions_db:
-                self.expressions_db[character_name] = []
-            
-            self.expressions_db[character_name].extend(new_expressions)
-            self.expressions_db[character_name] = list(set(self.expressions_db[character_name]))  # 去重
-            self._save_expressions()
-            
+        with self._expressions_lock:
+            current_expressions = set(self._get_character_expressions(character_name))
+            new_expressions = [expr for expr in expressions if expr not in current_expressions]
+
+            if new_expressions:
+                if character_name not in self.expressions_db:
+                    self.expressions_db[character_name] = []
+
+                self.expressions_db[character_name].extend(new_expressions)
+                self.expressions_db[character_name] = list(set(self.expressions_db[character_name]))  # 去重
+
+            if not new_expressions:
+                return []
+
+        self._save_expressions()
         return new_expressions
 
     def _update_character_expressions(self, character_name: str, text: str) -> List[str]:
@@ -1270,30 +1221,14 @@ class WorkflowController:
             else:
                 common_ancestors = set()
             
-            # 构建公共主干
-            context_parts: List[str] = []
-            context_parts.append("【公共主干记忆】")
-            for ancestor_id in self._sort_node_ids(common_ancestors):
-                summary = node_summaries.get(ancestor_id, "").strip()
-                if summary:
-                    context_parts.append(f"Node {ancestor_id}: {summary}")
-
-            # 构建各分支独立线
-            for idx, parent in enumerate(parents, 1):
-                branch_unique = ancestor_sets[idx - 1] - common_ancestors
-                branch_ids = self._sort_node_ids(branch_unique)
-                branch_lines = []
-                for node in branch_ids:
-                    summary = node_summaries.get(node, "").strip()
-                    if summary:
-                        branch_lines.append(f"Node {node}: {summary}")
-
-                if branch_lines:
-                    context_parts.append(f"【分支{idx}独立线（汇入父节点: {parent}）】")
-                    context_parts.extend(branch_lines)
+            # 构建上下文（按ID排序）
+            context_parts = []
+            for ancestor_id in sorted(common_ancestors):
+                if ancestor_id in node_summaries:
+                    context_parts.append(f"Node {ancestor_id}: {node_summaries[ancestor_id]}")
             
-            if len(context_parts) > 1:
-                return self._compress_long_term_context(context_parts)
+            if context_parts:
+                return "\n".join(context_parts)
             else:
                 return "故事开始（多条路径在此汇合）。"
         
@@ -1310,68 +1245,12 @@ class WorkflowController:
             
             # 构建上下文
             context_parts = []
-            for ancestor_id in self._sort_node_ids(ancestors):
-                summary = node_summaries.get(ancestor_id, "").strip()
-                if summary:
-                    context_parts.append(f"Node {ancestor_id}: {summary}")
+            for ancestor_id in sorted(ancestors):
+                if ancestor_id in node_summaries:
+                    context_parts.append(f"Node {ancestor_id}: {node_summaries[ancestor_id]}")
             
-            return self._compress_long_term_context(context_parts) if context_parts else "游戏开始。"
-
-    def _sort_node_ids(self, node_ids: set) -> List[str]:
-        """按剧情顺序排序节点ID：root -> node1 -> node2 ..."""
-        def node_key(node_id: str):
-            if node_id == "root":
-                return (0, 0)
-            match = re.match(r"^node(\d+)$", node_id)
-            if match:
-                return (1, int(match.group(1)))
-            return (2, node_id)
-
-        return sorted(node_ids, key=node_key)
-
-    def _compress_long_term_context(self, context_parts: List[str]) -> str:
-        """
-        长期记忆滚动压缩：
-        1) 未超阈值直接返回
-        2) 超阈值时压缩历史节点摘要，仅保留最近若干节点摘要原文
-        3) 兜底再压缩，避免上下文继续膨胀
-        """
-        if not context_parts:
-            return ""
-
-        joined = "\n".join(context_parts)
-        if len(joined) <= self.memory_max_chars:
-            return joined
-
-        recent_n = max(1, self.memory_keep_recent_nodes)
-        recent_parts = context_parts[-recent_n:]
-        history_parts = context_parts[:-recent_n]
-
-        compressed_history = ""
-        if history_parts and self.writer:
-            history_text = "\n".join(history_parts)
-            compress_request = self._to_msg("Workflow", {"story_content": history_text})
-            compressed_history = self.writer.summarize_story(compress_request.content["story_content"])
-            compressed_history = str(self._to_msg("Writer", {"summary": compressed_history}).content.get("summary", ""))
-
-        merged_parts = []
-        if compressed_history:
-            merged_parts.append(f"【历史压缩记忆】{compressed_history}")
-        merged_parts.append("【最近关键节点】")
-        merged_parts.extend(recent_parts)
-
-        merged = "\n".join(merged_parts)
-
-        # 兜底：仍超阈值则再次压缩
-        if len(merged) > self.memory_max_chars and self.writer:
-            final_compress_request = self._to_msg("Workflow", {"story_content": merged})
-            merged = self.writer.summarize_story(final_compress_request.content["story_content"])
-            merged = str(self._to_msg("Writer", {"summary": merged}).content.get("summary", ""))
-            if len(merged) > self.memory_compress_target_chars:
-                merged = merged[:self.memory_compress_target_chars]
-
-        return merged
-
+            return "\n".join(context_parts) if context_parts else "游戏开始。"
+    
     def _get_ancestors(self, node_id: str, story_graph: 'StoryGraph') -> set:
         """获取节点的所有祖先（BFS）"""
         ancestors = set()
@@ -1414,10 +1293,11 @@ class WorkflowController:
             content: 剧情内容
         """
         story_path = Path(PathConfig.STORY_FILE)
-        with open(story_path, 'a', encoding='utf-8') as f:
-            f.write(f"\n=== Node: {node_id} ===\n")
-            f.write(content)
-            f.write("\n")
+        with self._story_file_lock:
+            with open(story_path, 'a', encoding='utf-8') as f:
+                f.write(f"\n=== Node: {node_id} ===\n")
+                f.write(content)
+                f.write("\n")
     
     def _append_choices_to_story(self, node_id: str, children: List[tuple]):
         """
@@ -1457,8 +1337,9 @@ class WorkflowController:
             data['timestamp'] = datetime.now().strftime("%H:%M:%S")
             
             # 追加到 jsonl 文件
-            with open(log_path, 'a', encoding='utf-8') as f:
-                f.write(json.dumps(data, ensure_ascii=False) + '\n')
+            with self._performance_log_lock:
+                with open(log_path, 'a', encoding='utf-8') as f:
+                    f.write(json.dumps(data, ensure_ascii=False) + '\n')
         except Exception as e:
             logger.warning(f"⚠️ 记录表演日志失败: {e}")
     

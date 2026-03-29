@@ -5,3 +5,5 @@ data/
 logs/
 .env
 renpy_export/
+web/
+input.yaml

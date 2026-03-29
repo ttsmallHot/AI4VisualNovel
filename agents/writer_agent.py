@@ -12,7 +12,8 @@ from typing import Dict, Any, List, Optional
 from .base_agent import BaseAgent
 
 from .config import WriterConfig, PathConfig
-from .utils import JSONParser, FileHelper
+from .utils import FileHelper
+from .schemas import PLOT_SEGMENTS_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -70,24 +71,20 @@ class WriterAgent(BaseAgent):
             available_scenes=scenes_str,
             available_characters=characters_info
         )
-
-        memory_context = self.get_memory_context()
-        if memory_context:
-            prompt += f"\n\n【编剧短期记忆】\n{memory_context}"
-
-        self.add_short_term_memory(f"节点概要: {node_summary[:200]}")
         try:
             # 使用专门的 System Prompt 以确保 JSON 格式
             system_prompt = "你是一个剧情结构分析助手。你的任务是将剧情概要切分为结构化的片段，并严格输出 JSON 格式。"
-            
-            response = self.llm_client.chat_completion(
+
+            result = self.call_json_with_schema(
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": prompt}
                 ],
+                schema=PLOT_SEGMENTS_SCHEMA,
+                object_name="plot_segments",
                 temperature=0.7
             )
-            return JSONParser.parse_ai_response(response)
+            return result if isinstance(result, list) else []
         except Exception as e:
             logger.error(f"❌ 切分剧情失败: {e}")
             return []
@@ -121,10 +118,6 @@ class WriterAgent(BaseAgent):
             available_characters=characters_info
         )
 
-        memory_context = self.get_memory_context()
-        if memory_context:
-            prompt += f"\n\n【编剧短期记忆】\n{memory_context}"
-
         try:
             script = self.llm_client.chat_completion(
                 messages=[
@@ -133,8 +126,6 @@ class WriterAgent(BaseAgent):
                 ],
                 temperature=0.7
             )
-
-            self.add_short_term_memory(script[:300])
             return script
         except Exception as e:
             logger.error(f"❌ 整合剧本失败: {e}")
@@ -163,10 +154,6 @@ class WriterAgent(BaseAgent):
             characters=characters_info,
             story_context=story_context
         )
-
-        short_memory = self.get_memory_context()
-        if short_memory:
-            prompt += f"\n\n【最近短期记忆】\n{short_memory}"
         try:
             response = self.llm_client.chat_completion(
                 messages=[

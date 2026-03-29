@@ -69,10 +69,6 @@ class ActorAgent(BaseAgent):
             story_context=story_context,
             character_expressions=", ".join(character_expressions)
         )
-
-        memory_context = self.get_memory_context()
-        if memory_context:
-            prompt += f"\n\n【角色短期记忆】\n{memory_context}"
         
         system_prompt = self._build_system_prompt()
         
@@ -84,9 +80,6 @@ class ActorAgent(BaseAgent):
                 ],
                 temperature=0.9 # 表演需要创造力
             )
-
-            if performance.strip():
-                self.add_short_term_memory(performance[:300])
 
             return performance
         except Exception as e:

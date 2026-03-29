@@ -156,3 +156,31 @@ class StoryGraph:
         
         dfs(from_node)
         return endings
+
+    def enumerate_all_paths(self, start_node: str = "root", max_paths: int = 128) -> List[List[str]]:
+        """
+        枚举从 start_node 到所有叶子节点的路径。
+
+        Returns:
+            路径列表，每条路径是节点 ID 列表。
+        """
+        if start_node not in self.nodes:
+            return []
+
+        paths: List[List[str]] = []
+        stack: List[Tuple[str, List[str]]] = [(start_node, [start_node])]
+
+        while stack and len(paths) < max_paths:
+            node_id, current_path = stack.pop()
+            children = self.get_children(node_id)
+
+            if not children:
+                paths.append(current_path)
+                continue
+
+            for child_id, _ in reversed(children):
+                if child_id in current_path:
+                    continue
+                stack.append((child_id, current_path + [child_id]))
+
+        return paths

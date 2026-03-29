@@ -7,6 +7,7 @@ Agent Utils
 import json
 import logging
 import re
+import importlib
 from typing import Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -199,24 +200,32 @@ class JSONParser:
         return content
     
     @staticmethod
-    def validate_required_fields(data: Dict[str, Any], required_fields: list) -> bool:
+    def validate_json_schema(data: Any, schema: Dict[str, Any]) -> tuple[bool, str]:
         """
-        验证字典是否包含所有必需字段
-        
-        Args:
-            data: 要验证的字典
-            required_fields: 必需字段列表
-            
+        使用 JSON Schema 校验数据结构。
+
         Returns:
-            是否通过验证
+            (是否通过, 错误摘要)
         """
-        missing_fields = [field for field in required_fields if field not in data]
-        
-        if missing_fields:
-            logger.error(f"❌ 缺少必需字段: {', '.join(missing_fields)}")
-            return False
-        
-        return True
+        try:
+            jsonschema_module = importlib.import_module("jsonschema")
+            validate = getattr(jsonschema_module, "validate")
+            ValidationError = getattr(importlib.import_module("jsonschema.exceptions"), "ValidationError")
+        except ImportError:
+            logger.warning("⚠️ 未安装 jsonschema，跳过 Schema 校验")
+            return True, ""
+
+        try:
+            validate(instance=data, schema=schema)
+            return True, ""
+        except ValidationError as e:
+            error_path = ".".join([str(item) for item in e.absolute_path])
+            if error_path:
+                message = f"{error_path}: {e.message}"
+            else:
+                message = e.message
+            logger.error(f"❌ Schema 校验失败: {message}")
+            return False, message
 
 
 class PromptBuilder:
