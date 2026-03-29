@@ -15,6 +15,7 @@ Unlike prior approaches that focus on linear narrative generation or struggle wi
 `AI4VisualNovel` introduces a **novel "Actor Agent" paradigm** that participates in both dialogue generation and visual auditing. By simulating a professional studio pipeline (Producer, Writer, Actor, Artist) , it enables the generation of **persona-aligned character sprites** and authentic dialogue, ensuring that visual assets strictly adhere to character settings rather than generic descriptions. The framework directly outputs **playable game**, bridging the gap between LLM creativity and executable interactive media.
 
 ## 📰 News
+- [2026.03] The framework now supports custom original characters—bring your OC to life and create a story that is truly your own!
 - [2026.01] Code released! The paper is coming soon...
 
 
@@ -56,9 +57,7 @@ Follow these steps to set up your development environment:
 ## 🎮 Visual Novel Generation & Execution
 
 ### 1. Story Generation
-Start the multi-agent collaboration to generate world settings, story graph, scripts, and visual assets. You can provide your requirements via a text file:
-
-`input.yaml` 示例（通过 `--input-file` 指定路径）：
+Start the multi-agent collaboration to generate world settings, story graph, scripts, and visual assets. You can provide your requirements via a text file example as follows:
 
 ```yaml
 requirements:
@@ -66,29 +65,28 @@ requirements:
 
 oc:
   characters:
-    - id: NanamiYu
-      name: 七海优
-      gender: 女
+    - id: Nanami
+      name: Nanami
+      gender: female
       is_protagonist: true
       personality: ""
       appearance: ""
       background: ""
-      neutral_image_path: data/images/characters/NanamiYu/neutral.png
+      neutral_image_path: data/images/characters/Nanami/neutral.png
 ```
 
 ```bash
-# Generate with unified input config (requirements + OC)
-python main.py --mode create --input-file input.yaml
-
-# Or generate with empty requirements (AI will decide everything)
-python main.py --mode create
-
-# Or run by phases (recommended)
+# Generate by phases (recommended)
 python main.py --mode design --input-file input.yaml
 python main.py --mode script
 python main.py --mode render
+
+# Or generate with empty requirements (AI will decide everything)
+python main.py --mode design
+python main.py --mode script
+python main.py --mode render
 ```
-*   **Outputs**: Generated files are stored in `data` folder, including `game_design.json`, `story_graph.json`, `story.txt`, and images.
+*   **Outputs**: Generated files are stored in `data` folder, including scripts and images.
 *   **Design phase note**: `design` uses a two-step pipeline — Step1 generates outline (`story_outline.groups`), Step2 generates `story_graph` and writes it to `data/story_graph.json`.
 
 ### 2. Play the Game
@@ -98,18 +96,14 @@ python main.py --mode play
 ```
 *Note: You can also utilize other game engines (e.g., Unity, Ren'Py) to load the formatted data in the `data` folder for a more polished user experience.*
 
-### 3. Export to Ren'Py (Preview)
-Generate a preview `script.rpy` from `data/game_design.json` and `data/story.txt`:
+### 3. Export to Ren'Py 
 
 ```bash
 # Export Ren'Py project from existing generated data
 python main.py --mode export-renpy
-
-# (Optional) use standalone exporter
-python export_renpy.py --out-dir renpy_export/game
 ```
 
-By default this also copies `data/images` to `renpy_export/game/images`.
+After running this command, the required `script.rpy` and corresponding asset files will be generated in the `renpy_export` folder. Copy them into your Ren'Py project directory to run the game.
 
 ### 3. Packaging & Distribution
 If you want to distribute your Pygame masterpiece, build a standalone executable to share your game.

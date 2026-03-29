@@ -106,46 +106,6 @@ def setup_logging(level=logging.INFO):
     )
 
 
-def create_game_flow(args):
-    """创建新游戏流程"""
-    print("\n" + "="*70)
-    print("🎬 AI Visual Novel - 游戏创建模式")
-    print("="*70)
-    
-    workflow = WorkflowController()
-    
-    # 初始化 Agents（统一使用 OpenAI）
-    workflow.initialize_agents(
-        openai_api_key=args.openai_key,
-        openai_base_url=args.openai_base_url
-    )
-    
-    user_requirements, oc_characters = resolve_design_inputs(args)
-    
-    # 创建游戏 (这里为了兼容老命令，连放三个阶段跑完)
-    game_design = workflow.run_design_phase(
-        character_count=args.character_count,
-        requirements=user_requirements,
-        oc_characters=oc_characters
-    )
-    workflow.run_script_phase()
-    workflow.run_render_phase()
-    
-    print("\n" + "="*70)
-    print("🎉 游戏创建完成！")
-    print("="*70)
-    print(f"\n📖 游戏标题: {game_design['title']}")
-    print(f"📝 背景故事:\n{game_design['background'][:200]}...")
-    print(f"\n👥 游戏角色:")
-    for char in game_design['characters']:
-        print(f"   - {char['name']}: {char['personality']}")
-    
-    print(f"\n💾 游戏数据已保存到: {PathConfig.DATA_DIR}")
-    print(f"🎨 立绘图像保存在: {PathConfig.CHARACTERS_DIR}")
-    
-    print(f"\n提示: 运行 'python main.py --mode play' 开始游玩")
-
-
 def play_game_flow():
     """游玩游戏流程"""
     print("\n" + "="*70)
@@ -155,7 +115,7 @@ def play_game_flow():
     # 检查游戏是否存在
     if not os.path.exists(PathConfig.GAME_DESIGN_FILE):
         print("\n❌ 未找到游戏数据!")
-        print("   请先运行: python main.py --mode create")
+        print("   请先按阶段运行: python main.py --mode design -> script -> render")
         return
     
     # 启动游戏 UI
@@ -213,12 +173,12 @@ def export_renpy_flow(args):
 
     if not os.path.exists(PathConfig.GAME_DESIGN_FILE):
         print(f"\n❌ 未找到文件: {PathConfig.GAME_DESIGN_FILE}")
-        print("   请先运行: python main.py --mode design 或 --mode create")
+        print("   请先运行: python main.py --mode design")
         return
 
     if not os.path.exists(PathConfig.STORY_FILE):
         print(f"\n❌ 未找到文件: {PathConfig.STORY_FILE}")
-        print("   请先运行: python main.py --mode script 或 --mode create")
+        print("   请先运行: python main.py --mode script")
         return
 
     exporter = importlib.import_module("export_renpy")
@@ -256,8 +216,10 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 使用示例:
-  # 创建新游戏
-    python main.py --mode create --input-file input.yaml
+    # 按阶段生成新游戏
+        python main.py --mode design --input-file input.yaml
+        python main.py --mode script
+        python main.py --mode render
 
     # 仅导出现有数据到 Ren'Py
         python main.py --mode export-renpy
@@ -273,9 +235,9 @@ def main():
     
     parser.add_argument(
         '--mode',
-        choices=['create', 'design', 'script', 'render', 'play', 'export-renpy'],
+        choices=['design', 'script', 'render', 'play', 'export-renpy'],
         default='play',
-        help='运行模式: \n  create=一键跑完所有流程(不推荐)\n  design=仅生成大纲设定\n  script=仅根据大纲生成文本剧本\n  render=根据剧本渲染图片素材\n  play=游玩\n  export-renpy=导出 Ren\'Py 项目'
+        help='运行模式: \n  design=仅生成大纲设定\n  script=仅根据大纲生成文本剧本\n  render=根据剧本渲染图片素材\n  play=游玩\n  export-renpy=导出 Ren\'Py 项目'
     )
     
     parser.add_argument('--character-count', type=int, default=DesignerConfig.DEFAULT_CHARACTER_COUNT, help='角色数量')
@@ -297,9 +259,7 @@ def main():
     
     # 根据模式执行
     try:
-        if args.mode == 'create':
-            create_game_flow(args)
-        elif args.mode == 'design':
+        if args.mode == 'design':
             design_game_flow(args)
         elif args.mode == 'script':
             script_game_flow(args)

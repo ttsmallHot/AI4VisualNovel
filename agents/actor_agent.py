@@ -4,8 +4,8 @@ Actor Agent
 演员 Agent - 负责扮演特定角色并审核剧本
 """
 
-import json
 import logging
+import json
 from typing import Dict, Any, Optional, List
 from .base_agent import BaseAgent
 
@@ -38,6 +38,12 @@ class ActorAgent(BaseAgent):
         self.name = character_name
         
         logger.info(f"✅ 演员 Agent ({self.name}) 初始化成功")
+
+    def _build_system_prompt(self) -> str:
+        """统一构建 System Prompt（注入完整角色信息）"""
+        return self.config.SYSTEM_PROMPT.format(
+            character_info_json=json.dumps(self.character_info, ensure_ascii=False, indent=2)
+        )
     
     def perform_plot(
         self,
@@ -52,11 +58,8 @@ class ActorAgent(BaseAgent):
         # 统一使用角色真实名称作为剧本标签
         script_label = self.name
         
-        # 构建其他角色的详细信息
-        other_chars_info = "\n".join([
-            f"- {char.get('name', 'Unknown')}（{char.get('gender', '')},{char.get('personality', '')}）：{char.get('appearance', '')}。背景：{char.get('background', '')[:80]}..."
-            for char in other_characters
-        ])
+        # 传入在场其他角色完整设定（JSON）
+        other_chars_info = json.dumps(other_characters, ensure_ascii=False, indent=2)
         
         prompt = self.config.PERFORM_PROMPT.format(
             name=self.name,
@@ -71,11 +74,7 @@ class ActorAgent(BaseAgent):
         if memory_context:
             prompt += f"\n\n【角色短期记忆】\n{memory_context}"
         
-        system_prompt = self.config.SYSTEM_PROMPT.format(
-            name=self.name,
-            personality=self.character_info.get('personality', ''),
-            background=self.character_info.get('background', '')
-        )
+        system_prompt = self._build_system_prompt()
         
         try:
             performance = self.llm_client.chat_completion(
@@ -118,17 +117,12 @@ class ActorAgent(BaseAgent):
         logger.info(f"🎨 演员 {self.name} 正在审核立绘: {image_path} (表情: {expression})...")
         
         # 构建 System Prompt
-        system_prompt = self.config.SYSTEM_PROMPT.format(
-            name=self.name,
-            personality=self.character_info.get('personality', ''),
-            background=self.character_info.get('background', '')
-        )
+        system_prompt = self._build_system_prompt()
         
         # 构建 User Prompt
         user_prompt = self.config.IMAGE_CRITIQUE_PROMPT.format(
             story_background=story_background or "A visual novel game",
             art_style=art_style or "Japanese anime style",
-            appearance=self.character_info.get('appearance', ''),
             expression=expression
         )
         
@@ -170,7 +164,11 @@ class ActorAgent(BaseAgent):
             logger.error(f"❌ 演员 {self.name} 立绘审核失败: {str(e)}")
             return "PASS"  # 出错时默认通过
 
-    def generate_expression_description(self, expression_name: str) -> str:
+    def generate_expression_description(
+        self,
+        expression_name: str,
+        neutral_image_path: Optional[str] = None
+    ) -> str:
         """
         生成特定表情的视觉描述
         
@@ -181,22 +179,24 @@ class ActorAgent(BaseAgent):
             详细的视觉描述
         """
         prompt = self.config.EXPRESSION_DESCRIPTION_PROMPT.format(
-            name=self.name,
-            expression=expression_name,
-            character_info=json.dumps(self.character_info, ensure_ascii=False, indent=2)
+            expression=expression_name
         )
         
-        system_prompt = self.config.SYSTEM_PROMPT.format(
-            name=self.name,
-            personality=self.character_info.get('personality', ''),
-            background=self.character_info.get('background', '')
-        )
+        system_prompt = self._build_system_prompt()
         
         try:
+            user_content: Any = prompt
+            if neutral_image_path:
+                user_content = [
+                    {"type": "text", "text": prompt},
+                    {"type": "text", "text": "这是该角色的 neutral 参考立绘："},
+                    {"type": "image_url", "image_url": {"url": neutral_image_path}}
+                ]
+
             description = self.llm_client.chat_completion(
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": prompt}
+                    {"role": "user", "content": user_content}
                 ],
                 temperature=0.7
             )

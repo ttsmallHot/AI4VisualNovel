@@ -8,6 +8,7 @@ from .producer_agent import ProducerAgent
 from .artist_agent import ArtistAgent
 from .writer_agent import WriterAgent
 from .actor_agent import ActorAgent
+from .message import Msg
 from .config import APIConfig, PathConfig
 from .utils import JSONParser, FileHelper, PromptBuilder, TextProcessor
 
@@ -15,6 +16,7 @@ __all__ = [
     'ProducerAgent',
     'ArtistAgent', 
     'WriterAgent',
+    'Msg',
     'JSONParser',
     'FileHelper',
     'PromptBuilder',
