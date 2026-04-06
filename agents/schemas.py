@@ -137,3 +137,19 @@ PRODUCER_REACT_STEP_SCHEMA = {
         "final_feedback": {"type": "string"}
     }
 }
+
+
+ACTOR_IMAGE_CRITIQUE_SCHEMA = {
+    "type": "object",
+    "required": ["decision", "feedback"],
+    "additionalProperties": True,
+    "properties": {
+        "decision": {
+            "type": "string",
+            "enum": ["PASS", "REVISE"]
+        },
+        "feedback": {
+            "type": "string"
+        }
+    }
+}

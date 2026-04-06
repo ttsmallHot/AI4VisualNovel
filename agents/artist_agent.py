@@ -225,19 +225,42 @@ class ArtistAgent(BaseAgent):
                 
                 # 情况 1: 有参考图，使用 images.edit (multipart/form-data)
                 if reference_image_paths and any(os.path.exists(p) for p in reference_image_paths):
-                    ref_path = next(p for p in reference_image_paths if os.path.exists(p))
-                    # 读取并压缩参考图
-                    with open(ref_path, "rb") as f:
-                        img_bytes = f.read()
+                    valid_refs = [p for p in reference_image_paths if p and os.path.exists(p)]
+                    image_inputs = []
+                    for idx, ref_path in enumerate(valid_refs, 1):
+                        with open(ref_path, "rb") as f:
+                            img_bytes = f.read()
+                        image_inputs.append((f"reference_{idx}.png", img_bytes, "image/png"))
+
+                    openai_prompt = short_prompt
+                    if len(image_inputs) >= 2:
+                        openai_prompt = (
+                            "You will receive reference images in order. "
+                            "Reference image #1 is the neutral anchor for identity/style consistency. "
+                            "Reference image #2 is the previous failed attempt to fix. "
+                            "Keep identity consistent with #1, and apply concrete fixes relative to #2. "
+                            f"{short_prompt}"
+                        )
                     
                     logger.info(f"🎨 正在调用【OpenAI Images Edit API】(模型: {model_name})")
-                    response = self.client.images.edit(
-                        model=model_name,
-                        image=("reference.png", img_bytes, "image/png"),
-                        prompt=short_prompt,
-                        n=1,
-                        size=self.config.IMAGE_SIZE
-                    )
+                    try:
+                        response = self.client.images.edit(
+                            model=model_name,
+                            image=image_inputs,
+                            prompt=openai_prompt,
+                            n=1,
+                            size=self.config.IMAGE_SIZE
+                        )
+                    except Exception as multi_err:
+                        # 兼容旧 SDK/网关：如果多图参数不支持，回退到单图编辑
+                        logger.warning(f"⚠️ OpenAI 多参考图编辑失败，回退单图: {multi_err}")
+                        response = self.client.images.edit(
+                            model=model_name,
+                            image=image_inputs[0],
+                            prompt=openai_prompt,
+                            n=1,
+                            size=self.config.IMAGE_SIZE
+                        )
                 # 情况 2: 纯生成调用
                 else:
                     logger.info(f"🎨 正在调用【OpenAI Images Generations API】(模型: {model_name})")
@@ -266,7 +289,19 @@ class ArtistAgent(BaseAgent):
         elif self.provider == "google":
             contents = [prompt]
             if reference_image_paths:
-                for path in reference_image_paths:
+                valid_refs = [p for p in reference_image_paths if p and os.path.exists(p)]
+
+                # 明确告诉模型多参考图的角色，避免把 neutral 与失败样本混淆
+                if len(valid_refs) >= 2:
+                    contents[0] = (
+                        "You will receive two reference images in order. "
+                        "Reference image #1 is the neutral anchor for identity/style consistency. "
+                        "Reference image #2 is the previous failed attempt that must be corrected. "
+                        "Keep identity consistent with #1, and apply concrete fixes relative to #2. "
+                        f"{prompt}"
+                    )
+
+                for path in valid_refs:
                     if not path or not os.path.exists(path):
                         continue
                     try:
@@ -274,9 +309,6 @@ class ArtistAgent(BaseAgent):
                         contents.append(ref_img)
                     except Exception as e:
                         logger.warning(f"   ⚠️ 无法加载参考图 [{path}]: {e}")
-                
-                if len(contents) > 1:
-                    contents[0] = f"Generate a variation of the character in the attached images, maintaining visual consistency: {prompt}"
             
             response = self.client.models.generate_content(
                 model=APIConfig.IMAGE_MODEL,

@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional, List
 from .base_agent import BaseAgent
 
 from .config import ActorConfig
+from .schemas import ACTOR_IMAGE_CRITIQUE_SCHEMA
 
 logger = logging.getLogger(__name__)
 
@@ -40,9 +41,11 @@ class ActorAgent(BaseAgent):
         logger.info(f"✅ 演员 Agent ({self.name}) 初始化成功")
 
     def _build_system_prompt(self) -> str:
-        """统一构建 System Prompt（注入完整角色信息）"""
+        """统一构建 System Prompt（按配置模板注入角色关键信息）"""
         return self.config.SYSTEM_PROMPT.format(
-            character_info_json=json.dumps(self.character_info, ensure_ascii=False, indent=2)
+            name=self.name,
+            personality=self.character_info.get("personality", ""),
+            background=self.character_info.get("background", "")
         )
     
     def perform_plot(
@@ -116,7 +119,8 @@ class ActorAgent(BaseAgent):
         user_prompt = self.config.IMAGE_CRITIQUE_PROMPT.format(
             story_background=story_background or "A visual novel game",
             art_style=art_style or "Japanese anime style",
-            expression=expression
+            expression=expression,
+            appearance=self.character_info.get("appearance", "")
         )
         
         try:
@@ -133,29 +137,48 @@ class ActorAgent(BaseAgent):
             
             messages = [
                 {"role": "system", "content": system_prompt},
-                {"role": "user", "content": content}
+                {
+                    "role": "user",
+                    "content": content + [
+                        {
+                            "type": "text",
+                            "text": (
+                                "请严格输出 JSON，不要额外解释。格式如下：\n"
+                                "{\n"
+                                "  \"decision\": \"PASS\" 或 \"REVISE\",\n"
+                                "  \"feedback\": \"审核意见\"\n"
+                                "}\n"
+                                "规则：如果需要修改，decision 必须是 REVISE，feedback 必须给出具体可执行修改点。"
+                            )
+                        }
+                    ]
+                }
             ]
-            
-            feedback = self.llm_client.chat_completion(
+
+            critique = self.call_json_with_schema(
                 messages=messages,
+                schema=ACTOR_IMAGE_CRITIQUE_SCHEMA,
+                object_name="actor_image_critique",
                 temperature=self.config.TEMPERATURE
             )
-            
-            feedback = feedback.strip()
+
+            decision = str(critique.get("decision", "REVISE")).strip().upper()
+            feedback = str(critique.get("feedback", "")).strip()
             
             # 记录审核意见
+            logger.info(f"🎭 演员 {self.name} 的审核结论: {decision}")
             logger.info(f"🎭 演员 {self.name} 的审核意见:\n{feedback}")
-            
-            if "PASS" in feedback:
+
+            if decision == "PASS":
                 logger.info(f"✅ 演员 {self.name} 立绘审核通过")
                 return "PASS"
             else:
                 logger.warning(f"⚠️ 演员 {self.name} 对立绘提出修改建议")
-                return feedback
+                return feedback or "请根据角色设定继续修改当前立绘。"
                 
         except Exception as e:
             logger.error(f"❌ 演员 {self.name} 立绘审核失败: {str(e)}")
-            return "PASS"  # 出错时默认通过
+            return "图片审核失败，请重试。"
 
     def generate_expression_description(
         self,
@@ -172,7 +195,9 @@ class ActorAgent(BaseAgent):
             详细的视觉描述
         """
         prompt = self.config.EXPRESSION_DESCRIPTION_PROMPT.format(
-            expression=expression_name
+            name=self.name,
+            expression=expression_name,
+            character_info=json.dumps(self.character_info, ensure_ascii=False, indent=2)
         )
         
         system_prompt = self._build_system_prompt()

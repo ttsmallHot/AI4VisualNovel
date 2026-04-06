@@ -6,4 +6,6 @@ logs/
 .env
 renpy_export/
 web/
+experiment/
+
 input.yaml

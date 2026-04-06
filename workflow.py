@@ -681,8 +681,13 @@ class WorkflowController:
                 neutral_path = self._generate_expression_with_critique(
                     actor=actor,
                     expression="neutral",
+                    # 传主角 neutral 统一画风，但通过反馈约束避免复制主角脸
                     reference_image_path=style_reference_image,
-                    additional_feedback="Match the art style of the protagonist." if style_reference_image else ""
+                    additional_feedback=(
+                        "Match the art style of the protagonist reference image, "
+                        "but keep this character's own facial structure, hairstyle, and identity. "
+                        "Do not copy the protagonist's face."
+                    ) if style_reference_image else ""
                 )
                 
                 if neutral_path:

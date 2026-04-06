@@ -1,6 +1,7 @@
 import pygame
 import sys
 import math
+import os
 import textwrap
 import re
 from typing import List, Dict, Optional, Tuple, TYPE_CHECKING
@@ -121,6 +122,7 @@ class DialogueScene(Scene):
         self.char_counter = 0
         self.typing_speed = 1.5
         self.finished_typing = False
+        self.show_speaker_name = True
         
         # 当前状态
         self.current_speaker = None
@@ -140,6 +142,20 @@ class DialogueScene(Scene):
         self.background_images = {}
         
         self.load_line()
+
+    def _save_screenshot(self):
+        """保存当前窗口截图"""
+        surface = pygame.display.get_surface()
+        if surface is None:
+            print("⚠️ 当前没有可用窗口，无法截图")
+            return
+
+        screenshot_dir = os.path.join("logs", "screenshots")
+        os.makedirs(screenshot_dir, exist_ok=True)
+        filename = f"screenshot_{pygame.time.get_ticks()}.png"
+        filepath = os.path.join(screenshot_dir, filename)
+        pygame.image.save(surface, filepath)
+        print(f"📸 已保存截图: {filepath}")
     
     def load_background_image(self, bg_name: str) -> Optional[pygame.Surface]:
         """加载背景图像"""
@@ -430,6 +446,16 @@ class DialogueScene(Scene):
             for btn in self.choice_buttons:
                 btn.handle_event(event)
             return
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_n:
+            self.show_speaker_name = not self.show_speaker_name
+            state_text = "显示" if self.show_speaker_name else "隐藏"
+            print(f"🏷️ 名称显示: {state_text}")
+            return
+
+        if event.type == pygame.KEYDOWN and event.key == pygame.K_q:
+            self._save_screenshot()
+            return
         
         # 点击或空格继续
         if event.type == pygame.MOUSEBUTTONDOWN or (event.type == pygame.KEYDOWN and event.key in [pygame.K_SPACE, pygame.K_RETURN]):
@@ -471,7 +497,7 @@ class DialogueScene(Scene):
         draw_panel(screen, panel_rect)
         
         # 绘制说话人名字
-        if self.current_speaker:
+        if self.show_speaker_name and self.current_speaker:
             name_surf = self.font_name.render(self.current_speaker, True, Colors.WHITE)
             name_w = name_surf.get_width() + 40
             name_rect = (panel_rect[0], panel_rect[1] - 40, name_w, 50)
