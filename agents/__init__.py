@@ -10,6 +10,7 @@ from .writer_agent import WriterAgent
 from .actor_agent import ActorAgent
 from .config import APIConfig, PathConfig
 from .utils import JSONParser, FileHelper, PromptBuilder, TextProcessor
+from .tool_registry import call_tool, list_available_tools
 
 __all__ = [
     'ProducerAgent',
@@ -18,5 +19,7 @@ __all__ = [
     'JSONParser',
     'FileHelper',
     'PromptBuilder',
-    'TextProcessor'
+    'TextProcessor',
+    'call_tool',
+    'list_available_tools'
 ]

@@ -1,0 +1,13 @@
+requirements:
+  file_path: data/1.txt
+
+oc:
+  characters:
+    - id: Nanami
+      name: Nanami
+      gender: female
+      is_protagonist: true
+      personality: your_personality
+      appearance: your_appearance
+      background: your_background
+      neutral_image_path: neutral_image_path

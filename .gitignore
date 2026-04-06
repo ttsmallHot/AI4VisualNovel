@@ -4,3 +4,8 @@ __pycache__/
 data/
 logs/
 .env
+renpy_export/
+web/
+experiment/
+
+input.yaml
