@@ -1,11 +1,16 @@
 __pycache__/
+.pytest_cache/
 .DS_Store
 
 data/
+games/
 logs/
 .env
 renpy_export/
 web/
-experiment/
+experiment/*
+!experiment/audit_rolling_story.py
+!experiment/rollback_rolling_story.py
+!experiment/run_campus_murder_deepseek.sh
 
 input.yaml

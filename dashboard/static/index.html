@@ -1,0 +1,316 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI4VisualNovel · Library</title>
+  <link rel="stylesheet" href="player.css">
+  <style>
+    :root { --bg:#f3f6f5; --panel:#ffffff; --surface:#f8faf9; --text:#202b30; --muted:#64727a; --border:#dce4e3; --accent:#26766c; --green:#428655; --blue:#3979ba; }
+    [data-theme="dark"] { --bg:#171e21; --panel:#20292c; --surface:#263236; --text:#edf3f2; --muted:#a4b2b5; --border:#354346; --accent:#66b9a5; --green:#78b781; --blue:#7eb5e5; }
+    * { box-sizing:border-box; }
+    body { margin:0; height:100vh; overflow:hidden; background:var(--bg); color:var(--text); font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+    button,select,textarea,input { font:inherit; }
+    .app { height:100%; min-height:0; display:grid; grid-template-columns:220px 1fr; }
+    .app.library-mode { grid-template-columns:1fr; }
+    .app.library-mode .sidebar { display:none; }
+    .sidebar { border-right:1px solid var(--border); background:var(--panel); display:flex; flex-direction:column; padding:18px 12px; }
+    .brand { padding:0 10px 20px; font:500 19px Georgia,serif; }
+    .brand b { color:var(--accent); }
+    .back-library { width:100%; border:1px solid var(--border); border-radius:7px; padding:9px 10px; background:var(--surface); color:var(--text); text-align:left; cursor:pointer; }
+    .back-library:hover { border-color:var(--accent); }
+    .sidebar-project { padding:16px 10px 0; font-weight:600; overflow-wrap:anywhere; }
+    .nav { margin-top:20px; display:grid; gap:4px; }
+    .nav button { border:0; border-radius:8px; padding:10px 12px; text-align:left; background:transparent; color:var(--muted); cursor:pointer; }
+    .nav button:hover,.nav button.active { background:var(--border); color:var(--text); }
+    .side-footer { margin-top:auto; padding:10px; color:var(--muted); font-size:12px; }
+    .theme { border:1px solid var(--border); background:transparent; color:var(--text); border-radius:7px; padding:5px 9px; cursor:pointer; }
+    main { min-width:0; min-height:0; display:flex; flex-direction:column; }
+    header { min-height:62px; flex:none; border-bottom:1px solid var(--border); background:var(--panel); display:flex; align-items:center; justify-content:space-between; gap:16px; padding:9px 26px; }
+    header h1 { margin:0; font:500 21px Georgia,serif; }
+    .header-meta { color:var(--muted); font-size:12px; }
+    .header-actions { display:flex; align-items:center; gap:14px; }
+    .content { flex:1; min-height:0; overflow:auto; padding:26px; container-type:inline-size; }
+    .view { display:none; max-width:1200px; margin:0 auto; }
+    .view.active { display:block; }
+    #library.view { max-width:1440px; }
+    .library-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px; }
+    .library-count { color:var(--muted); font-size:13px; }
+    .library-actions { display:flex; align-items:center; gap:8px; }
+    .library-search { width:min(300px,55vw); border:1px solid var(--border); border-radius:7px; padding:8px 11px; background:var(--panel); color:var(--text); outline:none; }
+    .library-search:focus { border-color:var(--accent); }
+    .library-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+    .game-card { min-width:0; border:1px solid var(--border); border-radius:8px; background:var(--panel); overflow:hidden; display:flex; flex-direction:column; cursor:pointer; transition:border-color .15s,box-shadow .15s; }
+    .game-card:hover,.game-card:focus-visible { border-color:var(--accent); box-shadow:0 7px 22px #182d3120; outline:none; }
+    .game-cover { aspect-ratio:16/9; background:#dce8e6; overflow:hidden; display:grid; place-items:center; }
+    [data-theme="dark"] .game-cover { background:#344b4b; }
+    .game-card.tone-1 .game-cover { background:#e6eaf2; }
+    .game-card.tone-2 .game-cover { background:#f1e8e1; }
+    .game-card.tone-3 .game-cover { background:#e8eddf; }
+    .game-card.tone-1 .game-cover-fallback { color:#526f9c; }
+    .game-card.tone-2 .game-cover-fallback { color:#9b664f; }
+    .game-card.tone-3 .game-cover-fallback { color:#647c4e; }
+    [data-theme="dark"] .game-card.tone-1 .game-cover { background:#344059; }
+    [data-theme="dark"] .game-card.tone-2 .game-cover { background:#59443e; }
+    [data-theme="dark"] .game-card.tone-3 .game-cover { background:#3f4b38; }
+    [data-theme="dark"] .game-card.tone-1 .game-cover-fallback { color:#a9c3ee; }
+    [data-theme="dark"] .game-card.tone-2 .game-cover-fallback { color:#e9ae94; }
+    [data-theme="dark"] .game-card.tone-3 .game-cover-fallback { color:#b7d398; }
+    .game-cover img { display:block; width:100%; height:100%; object-fit:cover; }
+    .game-cover-fallback { color:var(--accent); font:500 38px Georgia,serif; }
+    .game-info { padding:15px 16px 13px; flex:1; min-height:142px; }
+    .game-title { margin:0 0 3px; font-size:16px; font-weight:650; line-height:1.35; overflow-wrap:anywhere; }
+    .game-slug { color:var(--muted); font-size:11px; overflow-wrap:anywhere; }
+    .game-description { margin:10px 0 0; color:var(--muted); font-size:12px; line-height:1.5; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; overflow-wrap:anywhere; }
+    .game-footer { border-top:1px solid var(--border); padding:11px 16px 14px; display:flex; align-items:center; gap:10px; justify-content:space-between; }
+    .game-stats { display:flex; flex-wrap:wrap; gap:5px 10px; color:var(--muted); font-size:11px; }
+    .game-open { flex:none; border:0; border-radius:6px; padding:7px 10px; background:var(--accent); color:#fff; cursor:pointer; }
+    .game-open:hover { filter:brightness(1.08); }
+    .library-empty { border:1px dashed var(--border); border-radius:8px; padding:54px 16px; color:var(--muted); text-align:center; }
+    .create-dialog { width:min(460px,calc(100vw - 28px)); max-height:calc(100dvh - 28px); overflow:auto; border:1px solid var(--border); border-radius:8px; padding:24px; background:var(--panel); color:var(--text); box-shadow:0 20px 70px #0003; }
+    .create-dialog::backdrop { background:#12232699; }
+    .create-dialog h2 { margin:0 0 18px; font-size:19px; font-weight:600; }
+    .create-form { display:grid; gap:14px; }
+    .create-field { display:grid; gap:6px; font-size:13px; font-weight:600; }
+    .create-field input,.create-field textarea { width:100%; border:1px solid var(--border); border-radius:6px; padding:9px 10px; background:var(--surface); color:var(--text); outline:none; font-weight:400; }
+    .create-field input:focus,.create-field textarea:focus { border-color:var(--accent); }
+    .create-field textarea { min-height:110px; resize:vertical; }
+    .create-hint { color:var(--muted); font-size:12px; font-weight:400; }
+    .create-error { min-height:18px; color:#b33e38; font-size:12px; }
+    .create-actions { display:flex; justify-content:flex-end; gap:8px; }
+    .design-dialog { width:min(680px,calc(100vw - 28px)); }
+    .design-dialog .create-field textarea { min-height:86px; }
+    .design-character-list { display:grid; gap:10px; }
+    .design-character { border:1px solid var(--border); border-radius:7px; padding:13px; display:grid; gap:10px; }
+    .design-character-head { display:flex; align-items:center; justify-content:space-between; gap:8px; font-weight:600; }
+    .design-character-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+    .design-character-fields .create-field { min-width:0; }
+    .design-protagonist { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:400; }
+    .design-protagonist input { width:auto; }
+    .generation-toolbar { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:18px; }
+    .generation-status { color:var(--muted); font-size:12px; overflow-wrap:anywhere; }
+    .generation-log { min-width:0; margin:-8px 0 18px; border:1px solid var(--border); border-radius:8px; background:var(--panel); overflow:hidden; }
+    .generation-log[hidden] { display:none; }
+    .generation-log summary { padding:9px 13px; cursor:pointer; font-weight:600; font-size:13px; }
+    .generation-log summary:hover { color:var(--accent); }
+    .generation-log pre { max-height:240px; min-height:80px; margin:0; padding:12px 14px; overflow:auto; border-top:1px solid var(--border); background:var(--surface); color:var(--text); white-space:pre-wrap; overflow-wrap:anywhere; font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:18px; }
+    .toolbar[hidden] { display:none; }
+    .btn { border:1px solid var(--border); border-radius:7px; background:var(--surface); color:var(--text); padding:8px 12px; cursor:pointer; }
+    .btn:hover { border-color:var(--accent); }
+    .btn.primary { background:var(--accent); border-color:var(--accent); color:white; }
+    .btn:disabled { opacity:.5; cursor:not-allowed; }
+    .grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:12px; }
+    .card { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:17px; }
+    .metric { font-size:28px; font-weight:600; margin-top:5px; }
+    .label { color:var(--muted); font-size:12px; }
+    .two-col { display:grid; grid-template-columns:minmax(0,1.4fr) minmax(280px,.8fr); gap:18px; margin-top:18px; }
+    .card h2 { margin:0 0 12px; font:500 17px Georgia,serif; }
+    .description { color:var(--muted); white-space:pre-wrap; }
+    .graph-shell { display:grid; grid-template-columns:minmax(0,1fr) 300px; min-height:560px; margin-top:18px; border:1px solid var(--border); border-radius:8px; overflow:hidden; background:var(--panel); }
+    .graph-main { min-width:0; display:flex; flex-direction:column; }
+    .graph-toolbar { height:48px; flex:none; display:flex; align-items:center; gap:8px; padding:0 12px; border-bottom:1px solid var(--border); }
+    .graph-toolbar h2 { margin:0 auto 0 0; font:500 17px Georgia,serif; }
+    .icon-btn { width:32px; height:32px; display:grid; place-items:center; border:1px solid var(--border); border-radius:6px; background:var(--surface); color:var(--text); cursor:pointer; font-weight:600; }
+    .icon-btn:hover { border-color:var(--accent); }
+    .zoom-value { width:46px; text-align:center; color:var(--muted); font-size:12px; }
+    .graph-viewport { position:relative; flex:1; min-height:510px; overflow:hidden; cursor:grab; touch-action:none; background-color:var(--surface); background-image:radial-gradient(var(--border) 1px,transparent 1px); background-size:20px 20px; }
+    .graph-viewport.panning { cursor:grabbing; }
+    .graph-canvas { position:absolute; left:0; top:0; transform-origin:0 0; }
+    .graph-edges { position:absolute; inset:0; overflow:visible; pointer-events:none; }
+    .graph-edge { fill:none; stroke:var(--border); stroke-width:2; }
+    .graph-edge.active { stroke:var(--accent); stroke-width:2.5; }
+    .edge-label { fill:var(--muted); font-size:11px; paint-order:stroke; stroke:var(--surface); stroke-width:5px; stroke-linejoin:round; }
+    .node { position:absolute; width:210px; height:104px; border:1px solid var(--border); border-radius:7px; padding:12px; background:var(--panel); cursor:grab; user-select:none; box-shadow:0 3px 10px #0000000a; }
+    .node:hover,.node.selected { border-color:var(--accent); box-shadow:0 5px 18px #00000012; }
+    .node.dragging { cursor:grabbing; box-shadow:0 8px 24px #0002; }
+    .node-id { color:var(--accent); font-weight:600; }
+    .node-type { float:right; color:var(--muted); font-size:11px; font-weight:400; }
+    .node-summary { margin-top:7px; color:var(--muted); font-size:12px; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+    .graph-detail { border-left:1px solid var(--border); padding:18px; overflow:auto; background:var(--panel); }
+    .graph-detail h2 { margin:0 0 5px; font:500 20px Georgia,serif; }
+    .detail-type { color:var(--accent); font-size:12px; margin-bottom:18px; }
+    .detail-block { padding:13px 0; border-top:1px solid var(--border); }
+    .detail-block:first-of-type { border-top:0; }
+    .detail-block h3 { margin:0 0 6px; color:var(--muted); font-size:11px; font-weight:600; text-transform:uppercase; }
+    .detail-links { display:flex; flex-wrap:wrap; gap:6px; }
+    .detail-chip { border:1px solid var(--border); border-radius:5px; padding:3px 7px; background:var(--surface); color:var(--text); font-size:12px; }
+    .detail-script { max-height:170px; overflow:auto; color:var(--muted); font-size:12px; white-space:pre-wrap; }
+    .story-layout { display:grid; grid-template-columns:220px minmax(0,1fr); gap:18px; height:calc(100dvh - 114px); min-height:420px; }
+    .node-list { min-height:0; background:var(--panel); border:1px solid var(--border); border-radius:10px; overflow-y:auto; scrollbar-gutter:stable; }
+    .node-list button { width:100%; border:0; border-bottom:1px solid var(--border); background:transparent; color:var(--text); text-align:left; padding:11px 13px; cursor:pointer; }
+    .node-list button.active { background:var(--border); }
+    .script { min-height:0; background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:20px; overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable; }
+    .script h2 { margin-top:0; font:500 20px Georgia,serif; }
+    .script.editing { display:flex; flex-direction:column; overflow:hidden; }
+    .script-head { position:sticky; top:-20px; z-index:2; display:flex; align-items:center; gap:10px; margin:-20px -20px 4px; padding:16px 20px 12px; background:var(--panel); border-bottom:1px solid var(--border); }
+    .script-head h2 { margin:0 auto 0 0; }
+    .story-editor { flex:1; min-height:0; display:flex; flex-direction:column; gap:12px; padding-top:12px; }
+    .story-editor textarea { flex:1; min-height:280px; width:100%; resize:none; border:1px solid var(--border); border-radius:7px; padding:14px; background:var(--surface); color:var(--text); outline:none; font:13px/1.65 ui-monospace,SFMono-Regular,Consolas,monospace; }
+    .story-editor textarea:focus { border-color:var(--accent); box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 18%,transparent); }
+    .story-editor-actions { display:flex; justify-content:flex-end; gap:8px; }
+    .line { padding:9px 0; border-bottom:1px solid var(--border); white-space:pre-wrap; }
+    .line.scene { color:var(--blue); font-weight:600; }
+    .line.dialogue { color:var(--text); }
+    .line.dialogue b { color:var(--accent); }
+    .line.image { color:var(--muted); font-size:12px; }
+    .asset-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:14px; }
+    .asset-sections { display:grid; gap:20px; }
+    .asset-section { background:var(--panel); border:1px solid var(--border); border-radius:8px; padding:17px; }
+    .asset-section > h2 { margin:0 0 14px; font:500 19px Georgia,serif; }
+    .asset-group { padding-top:14px; margin-top:14px; border-top:1px solid var(--border); }
+    .asset-group:first-of-type { padding-top:0; margin-top:0; border-top:0; }
+    .asset-group-title { display:flex; align-items:baseline; gap:8px; margin-bottom:10px; font-weight:600; }
+    .asset-group-title small { color:var(--muted); font-size:12px; font-weight:400; }
+    .asset { background:var(--panel); border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+    .asset img { width:100%; height:150px; object-fit:contain; background:var(--surface); display:block; }
+    .asset-preview { position:relative; }
+    .asset-reference { border-color:var(--accent); }
+    .asset-reference-badge { position:absolute; top:8px; left:8px; border-radius:5px; padding:3px 8px; background:var(--accent); color:var(--panel); font-size:11px; font-weight:600; }
+    .asset-info { padding:10px; }
+    .asset-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .asset-kind { color:var(--muted); font-size:12px; }
+    .asset-placeholder { height:150px; display:grid; place-items:center; background:var(--surface); color:var(--muted); font-size:13px; }
+    .cg-description { margin-top:8px; color:var(--muted); font-size:12px; line-height:1.6; display:-webkit-box; -webkit-line-clamp:5; -webkit-box-orient:vertical; overflow:hidden; }
+    .empty { color:var(--muted); padding:32px; text-align:center; }
+    .toast { position:fixed; right:22px; bottom:22px; background:var(--text); color:var(--bg); padding:10px 14px; border-radius:8px; box-shadow:0 5px 22px #0003; }
+    @container (max-width:760px) { .graph-shell { grid-template-columns:1fr; } .graph-detail { min-height:220px; max-height:320px; border-left:0; border-top:1px solid var(--border); } }
+    @media (max-width:1200px) { .library-grid { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+    @media (max-width:950px) { .library-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+    @media (max-width:800px) { .app { grid-template-columns:1fr; } .sidebar { height:auto; padding:10px; border-right:0; border-bottom:1px solid var(--border); } .brand { padding:0 0 8px; } .sidebar-project { padding:8px 0 0; } .nav { display:flex; margin-top:8px; overflow:auto; } .side-footer { display:none; } body { overflow:auto; } .app,main { height:auto; min-height:100vh; } .grid { grid-template-columns:repeat(2,1fr); } .two-col { grid-template-columns:1fr; } .story-layout { grid-template-columns:1fr; height:auto; min-height:0; } .node-list { max-height:180px; } .script { height:min(70dvh,720px); min-height:420px; } }
+    @media (max-width:600px) { header { padding:10px 16px; } header h1 { font-size:18px; } .header-meta { display:none; } .content { padding:16px; } .library-grid { grid-template-columns:1fr; gap:12px; } .library-toolbar { align-items:stretch; } .library-actions,.library-search { width:100%; } .library-search { flex:1; min-width:0; } .design-character-fields { grid-template-columns:1fr; } .story-layout { gap:10px; } }
+  </style>
+  <link rel="stylesheet" href="graph-editor.css">
+  <link rel="stylesheet" href="asset-regeneration.css">
+</head>
+<body>
+  <div class="app library-mode" id="app">
+    <aside class="sidebar">
+      <div class="brand">AI4VisualNovel<b>.</b></div>
+      <button class="back-library" onclick="navigateToLibrary()">← All Games</button>
+      <div id="sidebar-project" class="sidebar-project"></div>
+      <nav class="nav">
+        <button data-view="overview" class="active">Overview</button>
+        <button data-view="game">Game</button>
+        <button data-view="story">Story & Script</button>
+        <button data-view="assets">Characters & Assets</button>
+      </nav>
+      <div class="side-footer" id="status-text">Connecting…</div>
+    </aside>
+    <main>
+      <header><h1 id="page-title">Library</h1><div class="header-actions"><span class="header-meta" id="project-meta"></span><button id="theme-btn" class="theme" type="button">Toggle theme</button></div></header>
+      <section class="content">
+        <div id="library" class="view active">
+          <div class="library-toolbar"><span id="library-count" class="library-count">Loading games…</span><div class="library-actions"><input id="library-search" class="library-search" type="search" placeholder="Search games" aria-label="Search games"><button class="btn" onclick="refreshLibrary()">Refresh</button><button class="btn primary" onclick="location.href='/create.html'">＋ New Game</button></div></div>
+          <div id="library-grid" class="library-grid"></div>
+        </div>
+        <div id="overview" class="view">
+          <div id="generation-toolbar" class="generation-toolbar"></div>
+          <details id="generation-log" class="generation-log" hidden><summary>Generation Log</summary><pre id="generation-log-output"></pre></details>
+          <div id="renpy-toolbar" class="toolbar"><button class="btn" onclick="refresh()">Refresh</button><button class="btn" onclick="exportRenpy()">Export Ren’Py</button><button class="btn" onclick="downloadRenpy()">Download Export</button><button class="btn" id="renpy-build" onclick="buildRenpy()">Build</button><span id="renpy-status" class="label"></span></div>
+          <div id="metrics" class="grid"></div>
+          <div class="graph-shell">
+            <div class="graph-main">
+              <div class="graph-toolbar"><h2>Story Graph</h2><button class="icon-btn" title="Zoom out" onclick="zoomGraph(-0.1)">−</button><span id="zoom-value" class="zoom-value">100%</span><button class="icon-btn" title="Zoom in" onclick="zoomGraph(0.1)">+</button><button class="btn" onclick="resetGraphView()">Reset view</button></div>
+              <div id="graph-viewport" class="graph-viewport"><div id="graph-canvas" class="graph-canvas"><svg id="graph-edges" class="graph-edges"></svg><div id="graph"></div></div></div>
+            </div>
+            <aside id="graph-detail" class="graph-detail"><div class="empty">Select a node to view its details</div></aside>
+          </div>
+          <div class="card" style="margin-top:18px"><h2>About This Game</h2><div id="description" class="description"></div></div>
+        </div>
+        <div id="story" class="view"><div class="story-layout"><div id="node-list" class="node-list"></div><div id="script" class="script"><div class="empty">Select a node to read its script</div></div></div></div>
+        <div id="assets" class="view"><div class="toolbar"><button class="btn" onclick="loadProject()">Refresh Assets</button></div><div id="asset-groups" class="asset-sections"></div></div>
+        <div id="game" class="view"><div class="toolbar"><span id="game-progress" class="label"></span><button class="btn" onclick="restartGame()">Restart</button></div><div id="game-stage" class="vn-stage" aria-label="Game view"></div></div>
+      </section>
+    </main>
+  </div>
+  <dialog id="regenerate-dialog" aria-labelledby="regenerate-title">
+    <div class="regenerate-heading"><div><h2 id="regenerate-title">Regenerate</h2><p id="regenerate-name"></p></div><button id="regenerate-close" class="btn" type="button" aria-label="Close">×</button></div>
+    <div class="regenerate-comparison"><figure><figcaption>Current Image</figcaption><div class="regenerate-image"><img id="regenerate-original" alt="Current Image"></div></figure><figure><figcaption>New Image</figcaption><div class="regenerate-image"><img id="regenerate-candidate" alt="Generated image" hidden><div id="regenerate-placeholder">The generated image will appear here</div></div></figure></div>
+    <form id="regenerate-form"><label for="regenerate-feedback">Revision instructions <span>Optional</span></label><textarea id="regenerate-feedback" maxlength="2000" rows="3" placeholder="For example: Give the eyes a more anime style, keeping the hairstyle and uniform."></textarea><p class="regenerate-hint">Uses the game design and reference images. Apply the new image to replace the original, which is backed up automatically.</p><p id="regenerate-status" role="status" aria-live="polite"></p><p id="regenerate-error" role="alert"></p><div class="regenerate-actions"><button id="regenerate-discard" class="btn" type="button" hidden>Keep Original</button><button id="regenerate-start" class="btn primary" type="submit">Generate</button><button id="regenerate-accept" class="btn primary" type="button" hidden>Apply New Image</button></div></form>
+  </dialog>
+  <dialog id="design-dialog" class="create-dialog design-dialog" aria-labelledby="design-title">
+    <h2 id="design-title">Generate Design</h2>
+    <form id="design-form" class="create-form">
+      <label class="create-field">Story Requirements<textarea id="design-story" maxlength="10000" placeholder="Genre, world, themes, and story direction"></textarea></label>
+      <label class="create-field">Locations<textarea id="design-scenes" placeholder="One location per line, with an optional description. For example: Old art room: unfinished paintings on the walls."></textarea><span class="create-hint">One location per line, up to 30 locations.</span></label>
+      <label class="create-field">Total characters<input id="design-count" type="number" min="1" max="20" step="1" required value="3"><span class="create-hint">AI will create any characters you have not added, up to this total.</span></label>
+      <div class="create-field"><span>Your Characters</span><div id="design-characters" class="design-character-list"></div><button id="design-add-character" class="btn" type="button" onclick="addDesignCharacter()">＋ Add Character</button></div>
+      <div id="design-error" class="create-error" role="alert"></div>
+      <div class="create-actions"><button class="btn" type="button" onclick="closeDesignDialog()">Cancel</button><button class="btn primary" type="submit">Generate Design</button></div>
+    </form>
+  </dialog>
+  <script src="player.js"></script>
+  <script>
+    const state = { project: '', projects: [], data: null, view: 'library', selectedNode: '', editingNode: '', routeId: 0, generation: Object.create(null) }
+    const graphState = { positions: {}, scale: 1, offsetX: 30, offsetY: 30, pointer: null }
+    const $ = id => document.getElementById(id)
+    const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))
+    async function api(path, options) { const response = await fetch(path, options); const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Request failed'); return data }
+    function toast(message) { const el = document.createElement('div'); el.className='toast'; el.textContent=message; document.body.appendChild(el); setTimeout(()=>el.remove(),3200) }
+    function addDesignCharacter(character={}) { const list=$('design-characters');if(list.children.length>=20)return;const row=document.createElement('div');row.dataset.id=character.id||'';row.dataset.neutralImagePath=character.neutral_image_path||'';row.className='design-character';row.innerHTML=`<div class="design-character-head"><span>Character ${list.children.length+1}</span><button class="btn" type="button" title="Remove character" aria-label="Remove character" onclick="removeDesignCharacter(this)">×</button></div><div class="design-character-fields"><label class="create-field">Name<input class="character-name" maxlength="80" required></label><label class="create-field">Gender (optional)<input class="character-gender" maxlength="100"></label></div><label class="create-field">Personality and role<textarea class="character-personality" maxlength="1000"></textarea></label><label class="create-field">Appearance<textarea class="character-appearance" maxlength="1000"></textarea></label><label class="create-field">Background<textarea class="character-background" maxlength="1000"></textarea></label><label class="design-protagonist"><input class="character-protagonist" type="radio" name="design-protagonist">Protagonist</label>`;list.appendChild(row);if(character.neutral_image_path){const preview=document.createElement('img');preview.src='/media/'+encodeURIComponent(state.project)+'/'+character.neutral_image_path.split('/').map(encodeURIComponent).join('/');preview.alt='Uploaded character portrait';preview.style.cssText='height:140px;max-width:100%;object-fit:contain;justify-self:start';row.querySelector('.design-character-head').after(preview)}for(const [key,value] of Object.entries({name:character.name,gender:character.gender,personality:character.personality,appearance:character.appearance,background:character.background})){if(value)row.querySelector(`.character-${key}`).value=value}if(character.is_protagonist)row.querySelector('.character-protagonist').checked=true;$('design-add-character').disabled=list.children.length>=20 }
+    function removeDesignCharacter(button) { button.closest('.design-character').remove();[...$('design-characters').children].forEach((row,index)=>row.querySelector('.design-character-head span').textContent=`Character ${index+1}`);$('design-add-character').disabled=false }
+    function openDesignDialog() { const input=state.data?.design_inputs||{};$('design-story').value=input.story_requirements||'';$('design-scenes').value=(input.scenes||[]).join('\n');$('design-count').value=input.character_count||3;$('design-characters').replaceChildren();(input.characters||[]).forEach(addDesignCharacter);$('design-error').textContent='';$('design-dialog').showModal();$('design-story').focus() }
+    function closeDesignDialog() { $('design-dialog').close() }
+    $('design-form').addEventListener('submit',event=>{event.preventDefault();const scenes=$('design-scenes').value.split('\n').map(line=>line.trim()).filter(Boolean),characters=[...$('design-characters').children].map(row=>({id:row.dataset.id||undefined,neutral_image_path:row.dataset.neutralImagePath||undefined,name:row.querySelector('.character-name').value.trim(),gender:row.querySelector('.character-gender').value.trim(),personality:row.querySelector('.character-personality').value.trim(),appearance:row.querySelector('.character-appearance').value.trim(),background:row.querySelector('.character-background').value.trim(),is_protagonist:row.querySelector('.character-protagonist').checked})),count=Number($('design-count').value);if(scenes.length>30||scenes.some(scene=>scene.length>200)){$('design-error').textContent='Enter up to 30 locations, each no longer than 200 characters.';return}if(characters.length>count){$('design-error').textContent='Added characters cannot exceed the total character count.';return}closeDesignDialog();startGeneration('design',{story_requirements:$('design-story').value.trim(),scenes,character_count:count,characters})})
+    function renderLibrary() { const query=$('library-search').value.trim().toLocaleLowerCase(),projects=state.projects.filter(project=>`${project.title} ${project.name}`.toLocaleLowerCase().includes(query)); $('library-count').textContent=query?`${projects.length} / ${state.projects.length} games`:`${projects.length} games`; $('library-grid').innerHTML=projects.length?projects.map((project,index)=>`<article class="game-card tone-${index%4}" data-project="${escapeHtml(project.name)}" tabindex="0" role="button" aria-label="Open ${escapeHtml(project.title||project.name)}"><div class="game-cover">${project.cover?`<img src="${escapeHtml(project.cover)}" alt="${escapeHtml(project.title)} scene" loading="lazy">`:`<span class="game-cover-fallback" aria-hidden="true">${escapeHtml((project.title||project.name).slice(0,2))}</span>`}</div><div class="game-info"><h2 class="game-title">${escapeHtml(project.title||project.name)}</h2><div class="game-slug">${escapeHtml(project.name)}</div><p class="game-description">${escapeHtml(project.description||'No description yet')}</p></div><div class="game-footer"><div class="game-stats"><span>${project.nodes||0} nodes</span><span>${project.characters||0} characters</span><span>${project.scenes||0} scenes</span></div><span class="game-open" aria-hidden="true">Open Game</span></div></article>`).join(''):`<div class="library-empty" style="grid-column:1/-1">${query?'No matching games':'No games yet'}</div>` }
+    function showLibrary() { state.project=''; state.data=null; state.view='library'; $('app').classList.add('library-mode'); $('page-title').textContent='Library'; $('project-meta').textContent='AI4VisualNovel'; document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id==='library')); renderLibrary(); document.title='AI4VisualNovel · Library' }
+    function navigateToLibrary() { if(location.hash==='#library')showLibrary();else location.hash='library' }
+    function navigateToProject(name,view='overview') { const route=`project=${encodeURIComponent(name)}&view=${view}`; if(location.hash===`#${route}`)handleRoute();else location.hash=route }
+    function switchView(view) { if(!state.project||!['overview','game','story','assets'].includes(view))return; navigateToProject(state.project,view) }
+    async function handleRoute() { const routeId=++state.routeId; const params=new URLSearchParams(location.hash.slice(1)); const name=params.get('project'),view=params.get('view')||'overview'; if(!name||!state.projects.some(project=>project.name===name)||!['overview','game','story','assets'].includes(view)){showLibrary();return} if(state.project!==name||!state.data){state.project=name;state.data=null;$('app').classList.remove('library-mode');$('page-title').textContent='Opening game…';try{await loadProject();if(routeId!==state.routeId)return}catch(error){if(routeId===state.routeId){showLibrary();toast(error.message)}return}} if(routeId!==state.routeId)return;state.view=view;$('app').classList.remove('library-mode');document.querySelectorAll('.view').forEach(el=>el.classList.toggle('active',el.id===view));document.querySelectorAll('.nav button').forEach(el=>el.classList.toggle('active',el.dataset.view===view));$('page-title').textContent={overview:'Overview',game:'Game',story:'Story & Script',assets:'Characters & Assets'}[view];document.title=`${state.projects.find(project=>project.name===name)?.title||name} · AI4VisualNovel`;if(view==='assets')renderAssets();if(view==='story')renderStory();if(view==='game')renderGame() }
+    async function loadProjects() { const data=await api('/api/projects');state.projects=data.projects||[];renderLibrary();await handleRoute() }
+    async function refreshLibrary() { try { const data=await api('/api/projects');state.projects=data.projects||[];renderLibrary() } catch(error){toast(error.message)} }
+    async function loadProject() { if(!state.project)return;const project=state.project;const data=await api(`/api/project?project=${encodeURIComponent(project)}`);if(project!==state.project)return;state.data=data;const design=data.design||{},metadata=data.metadata||{},graph=data.graph||{};$('sidebar-project').textContent=design.title||metadata.title||project;$('project-meta').textContent=`${project} · ${Object.keys(graph.nodes||{}).length} nodes`;$('description').textContent=design.background||metadata.description||'No setting description yet';$('renpy-toolbar').hidden=!Object.keys(design).length||!data.story?.length;$('metrics').innerHTML=[['Characters',design.characters?.length||0],['Scenes',design.scenes?.length||0],['Nodes',Object.keys(graph.nodes||{}).length],['CG',data.cgs?.length||0],['Assets',data.assets?.length||0]].map(([label,value])=>`<div class="card"><div class="label">${label}</div><div class="metric">${value}</div></div>`).join('');state.selectedNode='';state.editingNode='';loadGraphLayout();renderGraph();renderStory();renderAssets();renderGenerationToolbar();await refreshStatus() }
+    function nextGenerationMode() { if(!Object.keys(state.data?.design||{}).length)return 'design';if(!state.data?.progress?.script_complete)return 'script';if(!state.data?.progress?.assets_complete)return 'render';return null }
+    function generationState(project=state.project) { return state.generation[project]??(state.generation[project]={jobId:null,message:'',log:''}) }
+    function renderGenerationToolbar() { const mode=nextGenerationMode(),record=generationState(),labels={design:'Generate Design',script:'Generate Script',render:'Generate Assets'};$('generation-toolbar').innerHTML=mode?`<button class="btn primary" type="button" onclick="${mode==='design'?'openDesignDialog()':`startGeneration('${mode}')`}" ${record.jobId?'disabled':''}>${labels[mode]}</button><span class="generation-status">${escapeHtml(record.message)}</span>`:record.message?`<span class="generation-status">${escapeHtml(record.message)}</span>`:'';renderGenerationLog() }
+    function renderGenerationLog() { const panel=$('generation-log'),record=generationState();panel.hidden=!record.jobId&&!record.log;const output=$('generation-log-output'),follow=output.scrollTop+output.clientHeight>=output.scrollHeight-24;output.textContent=record.log||'Waiting for output…';if(follow)output.scrollTop=output.scrollHeight }
+    async function startGeneration(mode,designInput) { const project=state.project,record=generationState(project);if(record.jobId||mode!==nextGenerationMode())return;record.message='Starting…';record.log='';$('generation-log').open=true;renderGenerationToolbar();try{const payload={project,mode};if(mode==='design')payload.design_input=designInput;const result=await api('/api/run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});if(mode==='design'&&state.project===project)state.data.design_inputs=designInput;record.jobId=result.job_id;record.message='Running…';if(state.project===project)renderGenerationToolbar();pollGeneration(result.job_id,project)}catch(error){record.message='Failed to start';record.log=error.message;if(state.project===project)renderGenerationToolbar();toast('Unable to start generation.')} }
+    async function pollGeneration(jobId,project) { const record=generationState(project);try{const job=await api(`/api/jobs/${encodeURIComponent(jobId)}`);if(record.jobId!==jobId)return;record.log=job.log||record.log;if(job.status==='queued'||job.status==='running'){record.message=job.status==='queued'?'Queued…':'Running…';if(state.project===project)renderGenerationToolbar();setTimeout(()=>pollGeneration(jobId,project),1400);return}record.jobId=null;if(job.status==='completed'){record.message='Generation complete';if(state.project===project)await loadProject();await refreshLibrary();toast('Generation complete')}else{record.message='Generation failed';record.log=job.log||'Generation failed with no log output.';toast('Generation failed. Check the generation log.')}if(state.project===project)renderGenerationToolbar()}catch(error){record.jobId=null;record.message='Unable to load log';record.log=error.message;if(state.project===project)renderGenerationToolbar();toast(error.message)} }
+    function graphLayoutKey() { return `a4vn-graph-layout:${state.project}` }
+    function defaultGraphLayout() { const ids=Object.keys(graphNodes()),edges=graphEdges(),indegree=Object.fromEntries(ids.map(id=>[id,0])),level=Object.fromEntries(ids.map(id=>[id,0])); edges.forEach(edge=>{if(edge.to in indegree&&edge.from in indegree)indegree[edge.to]++}); const queue=ids.filter(id=>indegree[id]===0),visited=new Set(); while(queue.length){const id=queue.shift();visited.add(id);edges.filter(edge=>edge.from===id&&edge.to in indegree).forEach(edge=>{level[edge.to]=Math.max(level[edge.to],level[id]+1);indegree[edge.to]--;if(indegree[edge.to]===0)queue.push(edge.to)})} ids.filter(id=>!visited.has(id)).forEach((id,index)=>{level[id]=Math.max(...Object.values(level),0)+index+1}); const groups={};ids.forEach(id=>(groups[level[id]]??=[]).push(id));const positions={};Object.entries(groups).forEach(([column,group])=>group.forEach((id,row)=>{positions[id]={x:40+Number(column)*420,y:40+row*140}}));return positions }
+    function loadGraphLayout() { graphState.positions=defaultGraphLayout(); try { const saved=JSON.parse(localStorage.getItem(graphLayoutKey())||'{}'); if(saved&&typeof saved==='object')graphState.positions={...graphState.positions,...saved} } catch(e) {} graphState.scale=1; graphState.offsetX=30; graphState.offsetY=30; }
+    function saveGraphLayout() { localStorage.setItem(graphLayoutKey(),JSON.stringify(graphState.positions)) }
+    function graphNodes() { return state.data?.graph?.nodes||{} }
+    function graphEdges() { return state.data?.graph?.edges||[] }
+    function graphPosition(id) { const saved=graphState.positions[id]; if(saved&&Number.isFinite(saved.x)&&Number.isFinite(saved.y))return saved; const position={x:40,y:40}; graphState.positions[id]=position; return position }
+    function edgeCaption(text, gap) { const limit=Math.max(5,Math.floor((gap-20)/6)); return text.length>limit ? text.slice(0,limit-1).trimEnd()+'…' : text }
+    function renderGraph() { const nodes=graphNodes(); const ordered=Object.keys(nodes); const edges=graphEdges(); if(!ordered.length){$('graph').innerHTML='<div class="empty">No story graph yet</div>'; $('graph-edges').innerHTML=''; return} const positions=ordered.map(id=>({id,...graphPosition(id)})); const width=Math.max(1050,...positions.map(node=>node.x+240)); const height=Math.max(510,...positions.map(node=>node.y+135)); const canvas=$('graph-canvas'); canvas.style.width=`${width}px`; canvas.style.height=`${height}px`; canvas.style.transform=`translate(${graphState.offsetX}px,${graphState.offsetY}px) scale(${graphState.scale})`; const edgesSvg=$('graph-edges'); edgesSvg.setAttribute('width',width); edgesSvg.setAttribute('height',height); edgesSvg.setAttribute('viewBox',`0 0 ${width} ${height}`); const positionMap=Object.fromEntries(positions.map(node=>[node.id,node])); edgesSvg.innerHTML=edges.map((edge,index)=>{const from=positionMap[edge.from],to=positionMap[edge.to];if(!from||!to)return'';const x1=from.x+210,y1=from.y+52,x2=to.x,y2=to.y+52,mid=(x1+x2)/2;return `<path data-edge-index="${index}" class="graph-edge${state.selectedNode===edge.from||state.selectedNode===edge.to?' active':''}" d="M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}"></path>${edge.choice_text?`<text data-edge-index="${index}" class="edge-label" x="${mid}" y="${(y1+y2)/2-6}" text-anchor="middle"><title>${escapeHtml(edge.choice_text)}</title>${escapeHtml(edgeCaption(edge.choice_text,Math.abs(x2-x1)))}</text>`:''}`}).join(''); $('graph').innerHTML=positions.map(node=>{const item=nodes[node.id]||{};const type=item.type||'normal';return `<div class="node${state.selectedNode===node.id?' selected':''}" data-node-id="${escapeHtml(node.id)}" style="left:${node.x}px;top:${node.y}px"><span class="node-id">${escapeHtml(node.id)}</span><span class="node-type">${escapeHtml(type)}</span><div class="node-summary">${escapeHtml(item.summary||'')}</div></div>`}).join(''); $('zoom-value').textContent=`${Math.round(graphState.scale*100)}%`; showGraphDetail(state.selectedNode) }
+    function updateGraphVisuals() { const canvas=$('graph-canvas'); canvas.style.transform=`translate(${graphState.offsetX}px,${graphState.offsetY}px) scale(${graphState.scale})`; Object.entries(graphState.positions).forEach(([id,position])=>{const node=$(`graph`).querySelector(`[data-node-id="${CSS.escape(id)}"]`);if(node){node.style.left=`${position.x}px`;node.style.top=`${position.y}px`}}); const nodes=graphNodes(); const positionMap=Object.fromEntries(Object.keys(nodes).map(id=>[id,graphState.positions[id]])); graphEdges().forEach((edge,index)=>{const from=positionMap[edge.from],to=positionMap[edge.to];if(!from||!to)return;const x1=from.x+210,y1=from.y+52,x2=to.x,y2=to.y+52,mid=(x1+x2)/2;const path=$('graph-edges').querySelector(`path[data-edge-index="${index}"]`);if(path)path.setAttribute('d',`M ${x1} ${y1} C ${mid} ${y1}, ${mid} ${y2}, ${x2} ${y2}`);const label=$('graph-edges').querySelector(`text[data-edge-index="${index}"]`);if(label){label.setAttribute('x',mid);label.setAttribute('y',(y1+y2)/2-6)}}); $('zoom-value').textContent=`${Math.round(graphState.scale*100)}%` }
+    function zoomGraph(delta,anchorX,anchorY) { const viewport=$('graph-viewport'); const rect=viewport.getBoundingClientRect(); const x=anchorX??rect.width/2; const y=anchorY??rect.height/2; const next=Math.min(1.6,Math.max(.6,Number((graphState.scale+delta).toFixed(2)))); const ratio=next/graphState.scale; graphState.offsetX=x-(x-graphState.offsetX)*ratio; graphState.offsetY=y-(y-graphState.offsetY)*ratio; graphState.scale=next; updateGraphVisuals() }
+    function handleGraphWheel(event) { if(event.ctrlKey||event.metaKey){event.preventDefault();zoomGraph(event.deltaY<0?.1:-.1,event.offsetX,event.offsetY);return} const horizontal=event.shiftKey&&Math.abs(event.deltaX)<1?event.deltaY:event.deltaX; if(Math.abs(horizontal)>1){event.preventDefault();graphState.offsetX-=horizontal;updateGraphVisuals()} }
+    function resetGraphView() { graphState.positions=defaultGraphLayout(); graphState.scale=1; graphState.offsetX=30; graphState.offsetY=30; localStorage.removeItem(graphLayoutKey()); renderGraph() }
+    function graphNodeDetails(id) { const node=graphNodes()[id]; if(!node)return null; const story=(state.data?.story||[]).find(item=>item.id===id); return {node,story,incoming:graphEdges().filter(edge=>edge.to===id),outgoing:graphEdges().filter(edge=>edge.from===id)} }
+    function showGraphDetail(id) { const detail=$('graph-detail'); const info=graphNodeDetails(id); if(!info){detail.innerHTML='<div class="empty">Select a node to view its details</div>';return} const {node,story,incoming,outgoing}=info; const scriptPreview=(story?.lines||[]).slice(0,4).map(line=>line.text||line.value||line.target||'').filter(Boolean).join('\n'); detail.innerHTML=`<h2>${escapeHtml(id)}</h2><div class="detail-type">${escapeHtml(node.type||'normal')} node</div><div class="detail-block"><h3>Node Summary</h3><div>${escapeHtml(node.summary||'No summary yet')}</div></div><div class="detail-block"><h3>Incoming Nodes</h3><div class="detail-links">${incoming.length?incoming.map(edge=>`<button class="detail-chip" onclick="selectGraphNode('${escapeHtml(edge.from)}')">${escapeHtml(edge.from)}</button>`).join(''):'<span class="description">Start</span>'}</div></div><div class="detail-block"><h3>Outgoing Nodes</h3><div class="detail-links">${outgoing.length?outgoing.map(edge=>`<button class="detail-chip" onclick="selectGraphNode('${escapeHtml(edge.to)}')">${escapeHtml(edge.to)}${edge.choice_text?` · ${escapeHtml(edge.choice_text)}`:''}</button>`).join(''):'<span class="description">End</span>'}</div></div>${scriptPreview?`<div class="detail-block"><h3>Script Preview</h3><div class="detail-script">${escapeHtml(scriptPreview)}</div></div>`:''}<button class="btn primary" style="width:100%;margin-top:10px" onclick="openNodeStory('${escapeHtml(id)}')">Read Full Script</button>` }
+    function selectGraphNode(id) { state.selectedNode=id; renderGraph() }
+    function openNodeStory(id) { state.selectedNode=id; switchView('story'); renderStory() }
+    function handleGraphPointerDown(event) { const node=event.target.closest('.node'); const viewport=$('graph-viewport'); if(node){const id=node.dataset.nodeId;const position=graphState.positions[id];if(!position)return;graphState.pointer={mode:'node',id,startX:event.clientX,startY:event.clientY,originX:position.x,originY:position.y,moved:false};node.classList.add('dragging')} else {graphState.pointer={mode:'pan',startX:event.clientX,startY:event.clientY,originX:graphState.offsetX,originY:graphState.offsetY,moved:false};viewport.classList.add('panning')} viewport.setPointerCapture?.(event.pointerId); event.preventDefault() }
+    function handleGraphPointerMove(event) { const pointer=graphState.pointer;if(!pointer)return;const dx=event.clientX-pointer.startX,dy=event.clientY-pointer.startY;if(Math.abs(dx)+Math.abs(dy)>4)pointer.moved=true;if(pointer.mode==='node'){graphState.positions[pointer.id]={x:Math.max(0,pointer.originX+dx/graphState.scale),y:Math.max(0,pointer.originY+dy/graphState.scale)}}else{graphState.offsetX=pointer.originX+dx;graphState.offsetY=pointer.originY+dy}updateGraphVisuals() }
+    function handleGraphPointerUp(event) { const pointer=graphState.pointer;if(!pointer)return;if(pointer.mode==='node'){document.querySelector(`[data-node-id="${CSS.escape(pointer.id)}"]`)?.classList.remove('dragging');if(!pointer.moved){selectGraphNode(pointer.id)}else saveGraphLayout()}else $('graph-viewport').classList.remove('panning');graphState.pointer=null;event.preventDefault() }
+    function storyNode(id) { return (state.data?.story||[]).find(node=>node.id===id) }
+    function renderStory() { const nodes=state.data?.story||[]; $('node-list').innerHTML=nodes.length?nodes.map(n=>`<button class="${n.id===state.selectedNode?'active':''}" onclick="selectNode('${escapeHtml(n.id)}')">${escapeHtml(n.id)}</button>`).join(''):'<div class="empty">No script yet</div>'; if(state.editingNode&&storyNode(state.editingNode))showStoryEditor(state.editingNode);else if(state.selectedNode)showNode(state.selectedNode);else if(nodes[0])showNode(nodes[0].id) }
+    function selectNode(id) { state.selectedNode=id; state.editingNode=''; switchView('story'); renderStory() }
+    function showNode(id) { const node=storyNode(id); if(!node)return; const panel=$('script'); panel.classList.remove('editing'); panel.innerHTML=`<div class="script-head"><h2>${escapeHtml(node.id)}</h2><button class="btn" onclick="startStoryEdit('${escapeHtml(node.id)}')">Edit</button></div>`+node.lines.map(line=>{if(line.type==='scene')return `<div class="line scene">Scene: ${escapeHtml(line.value)}</div>`;if(line.type==='dialogue'||line.type==='narration')return `<div class="line dialogue"><b>${escapeHtml(line.speaker)}</b>: ${escapeHtml(line.text)}</div>`;if(line.type==='image')return `<div class="line image">Portrait: ${escapeHtml(line.speaker)} · ${escapeHtml(line.expression)}</div>`;if(line.type==='cg')return `<div class="line scene">CG: ${escapeHtml(line.id)}</div>`;if(line.type==='jump')return `<div class="line image">Jump: ${escapeHtml(line.target)}</div>`;if(line.type==='choice')return `<div class="line image">Choice → ${escapeHtml(line.target)}: ${escapeHtml(line.text)}</div>`;return `<div class="line">${escapeHtml(line.text)}</div>`}).join('') }
+    function startStoryEdit(id) { state.selectedNode=id; state.editingNode=id; showStoryEditor(id) }
+    function showStoryEditor(id) { const node=storyNode(id);if(!node)return;const panel=$('script');panel.classList.add('editing');panel.innerHTML=`<div class="script-head"><h2>${escapeHtml(id)}</h2></div><div class="story-editor"><textarea id="story-source" spellcheck="false"></textarea><div class="story-editor-actions"><button class="btn" onclick="cancelStoryEdit()">Cancel</button><button id="save-story" class="btn primary" onclick="saveStoryEdit()">Save</button></div></div>`;const editor=$('story-source');editor.value=node.raw||'';editor.focus() }
+    function cancelStoryEdit() { const id=state.editingNode;state.editingNode='';showNode(id) }
+    async function saveStoryEdit() { const id=state.editingNode,node=storyNode(id),button=$('save-story');if(!id||!node||!button)return;button.disabled=true;try{const data=await api('/api/story/node',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:state.project,node_id:id,content:$('story-source').value,original:node.raw||''})});state.data.story=data.nodes;state.editingNode='';renderStory();toast(`Saved ${id}`)}catch(error){toast(error.message);button.disabled=false} }
+    function regenerateButton(asset) { return asset?.can_regenerate?`<button class="btn asset-regenerate" type="button" data-regenerate="${escapeHtml(asset.path)}">Regenerate</button>`:'' }
+    function isCharacterReference(asset) { return asset.category==='character' && asset.name.replace(/\.[^.]+$/,'').toLowerCase()==='neutral' }
+    function renderAssetCards(assets) { return [...assets].sort((a,b)=>Number(isCharacterReference(b))-Number(isCharacterReference(a))).map(asset=>{const reference=isCharacterReference(asset);return `<div class="asset${reference?' asset-reference':''}"><div class="asset-preview"><img src="${escapeHtml(asset.url)}" alt="${escapeHtml(asset.name)}" loading="lazy">${reference?'<span class="asset-reference-badge" title="The identity reference used for this character’s other expressions">Character Reference</span>':''}</div><div class="asset-info"><div class="asset-name" title="${escapeHtml(asset.path)}">${escapeHtml(asset.name)}</div><div class="asset-kind">${escapeHtml(asset.kind)} · ${escapeHtml(asset.path)}</div>${regenerateButton(asset)}</div></div>`}).join('') }
+
+    function renderAssetSection(category,label,assets) { if(!assets.length)return ''; const grouped=assets.reduce((result,asset)=>{(result[asset.group||'Ungrouped']??=[]).push(asset);return result},{}); const characterNames=Object.fromEntries((state.data?.design?.characters||[]).map(character=>[character.id,character.name])); return `<section class="asset-section"><h2>${label}<small>${assets.length} files</small></h2>${Object.entries(grouped).sort(([left],[right])=>left.localeCompare(right)).map(([group,items])=>{const title=category==='character'&&characterNames[group]?`${group} · ${characterNames[group]}`:category==='scene'?'Backgrounds':group;return `<div class="asset-group"><div class="asset-group-title">${escapeHtml(title)}<small>${items.length} files</small></div><div class="asset-grid">${renderAssetCards(items)}</div></div>`}).join('')}</section>` }
+    function renderCgSection(cgs,assets) { if(!cgs.length&&!assets.length)return ''; const byId=Object.fromEntries(assets.map(asset=>[asset.name.replace(/\.[^.]+$/,''),asset])); const characterNames=Object.fromEntries((state.data?.design?.characters||[]).map(character=>[character.id,character.name])); return `<section class="asset-section"><h2>CG · Story Illustrations <small>${assets.length}/${cgs.length||assets.length} generated</small></h2><div class="asset-grid">${cgs.map(cg=>{const asset=byId[cg.id];const names=(cg.characters||[]).map(id=>characterNames[id]||id).join(', ');return `<div class="asset">${asset?`<img src="${escapeHtml(asset.url)}" alt="${escapeHtml(cg.id)}" loading="lazy">`:'<div class="asset-placeholder">Not generated yet</div>'}<div class="asset-info"><div class="asset-name" title="${escapeHtml(cg.id)}">${escapeHtml(cg.id)}</div><div class="asset-kind">${escapeHtml(cg.node_id)} · ${escapeHtml(names)}</div><div class="cg-description" title="${escapeHtml(cg.description||'')}">${escapeHtml(cg.description||'')}</div>${regenerateButton(asset)}</div></div>`}).join('')}${renderAssetCards(assets.filter(asset=>!cgs.some(cg=>cg.id===asset.name.replace(/\.[^.]+$/,''))))}</div></section>` }
+    function renderAssets() { const assets=state.data?.assets||[]; const cgs=state.data?.cgs||[]; const sections=[renderAssetSection('scene','Scenes',assets.filter(asset=>asset.category==='scene')),renderAssetSection('character','Characters',assets.filter(asset=>asset.category==='character')),renderCgSection(cgs,assets.filter(asset=>asset.category==='cg')),renderAssetSection('other','Other',assets.filter(asset=>asset.category==='other'))].filter(Boolean); $('asset-groups').innerHTML=sections.length?sections.join(''):'<div class="empty">No image assets yet</div>' }
+    async function refreshStatus() { const project=state.project;const data=await api(`/api/status?project=${encodeURIComponent(project)}`);if(project!==state.project)return;$('status-text').textContent=data.renpy_sdk?'Export and build available':'Export available · Build requires SDK';$('renpy-status').textContent=data.renpy_sdk?'Ren’Py SDK detected':'The Ren’Py SDK is required only for builds. Export is available.';$('renpy-build').disabled=!data.renpy_sdk;$('renpy-build').title=data.renpy_sdk?'Build Ren’Py project':'The Ren’Py SDK is required for builds.' }
+    async function refresh() { try { await loadProject(); toast('Refreshed') } catch(e){toast(e.message)} }
+    async function exportRenpy() { try { const data=await api('/api/export-renpy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:state.project})}); toast(`Ren’Py project exported: ${data.relative_output}`) } catch(e){toast(e.message)} }
+    async function downloadRenpy() { try { const response=await fetch(`/api/download-renpy?project=${encodeURIComponent(state.project)}`); if(!response.ok){const data=await response.json();throw new Error(data.error||'Download failed')} const blob=await response.blob(); const url=URL.createObjectURL(blob); const link=document.createElement('a'); link.href=url; link.download=`${state.project}-renpy-project.zip`; link.click(); URL.revokeObjectURL(url); toast('Export download started') } catch(e){toast(e.message)} }
+    async function buildRenpy() { try { const data=await api('/api/build-renpy',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({project:state.project})}); toast(`Build started: ${data.job_id}`) } catch(e){toast(e.message)} }
+    $('library-search').addEventListener('input',renderLibrary);$('library-grid').addEventListener('click',event=>{const card=event.target.closest('.game-card[data-project]');if(card)navigateToProject(card.dataset.project)});$('library-grid').addEventListener('keydown',event=>{if((event.key==='Enter'||event.key===' ')&&event.target.matches('.game-card[data-project]')){event.preventDefault();navigateToProject(event.target.dataset.project)}});window.addEventListener('hashchange',()=>handleRoute().catch(error=>toast(error.message)));document.querySelectorAll('.nav button').forEach(button=>button.addEventListener('click',()=>switchView(button.dataset.view)));$('theme-btn').addEventListener('click',()=>{const dark=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=dark?'':'dark';localStorage.setItem('a4vn-theme',dark?'light':'dark')});$('graph-viewport').addEventListener('pointerdown',handleGraphPointerDown);$('graph-viewport').addEventListener('pointermove',handleGraphPointerMove);$('graph-viewport').addEventListener('pointerup',handleGraphPointerUp);$('graph-viewport').addEventListener('pointercancel',handleGraphPointerUp);$('graph-viewport').addEventListener('wheel',handleGraphWheel,{passive:false});if(localStorage.getItem('a4vn-theme')==='dark')document.documentElement.dataset.theme='dark';loadProjects().catch(error=>toast(error.message));
+  </script>
+  <script src="graph-editor.js"></script>
+  <script src="asset-regeneration.js"></script>
+</body>
+</html>

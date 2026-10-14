@@ -1,0 +1,23 @@
+.asset-regenerate { margin-top:12px; width:100%; font-size:12px; }
+#regenerate-dialog { width:min(780px,calc(100vw - 32px)); max-height:calc(100dvh - 32px); overflow:auto; padding:26px; border:1px solid var(--border); border-radius:12px; background:var(--panel); color:var(--text); box-shadow:0 24px 90px #0003; }
+#regenerate-dialog::backdrop { background:#12232699; }
+.regenerate-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:20px; }
+.regenerate-heading h2 { margin:0 0 6px; font-size:19px; font-weight:600; }
+.regenerate-heading p { margin:0; font-size:12px; color:var(--muted); overflow-wrap:anywhere; }
+#regenerate-close { padding:3px 10px; font-size:20px; }
+.regenerate-comparison { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:22px; }
+.regenerate-comparison figure { margin:0; min-width:0; }
+.regenerate-comparison figcaption { font-size:12px; color:var(--muted); margin-bottom:8px; }
+.regenerate-image { height:270px; border:1px solid var(--border); border-radius:8px; background:var(--surface); display:grid; place-items:center; overflow:hidden; }
+.regenerate-image img { width:100%; height:100%; object-fit:contain; min-height:0; }
+#regenerate-placeholder { font-size:12px; color:var(--muted); padding:18px; text-align:center; }
+#regenerate-form label { font-size:13px; font-weight:500; }
+#regenerate-form label span { color:var(--muted); font-size:11px; margin-left:6px; }
+#regenerate-feedback { display:block; width:100%; resize:vertical; margin-top:9px; padding:10px 12px; font:inherit; font-size:13px; color:var(--text); background:var(--surface); border:1px solid var(--border); border-radius:7px; }
+#regenerate-feedback:focus { outline:1px solid var(--accent); }
+.regenerate-hint { font-size:12px; color:var(--muted); margin:10px 0; }
+#regenerate-status { font-size:12px; color:var(--accent); }
+#regenerate-error { font-size:12px; color:#c25047; overflow-wrap:anywhere; }
+.regenerate-actions { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; }
+#regenerate-dialog [hidden] { display:none!important; }
+@media(max-width:600px) { #regenerate-dialog { padding:18px; }.regenerate-image { height:180px; }.regenerate-comparison { gap:10px; } }

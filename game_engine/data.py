@@ -110,6 +110,11 @@ class StoryParser:
             char_name = image_match.group(1)
             expression = image_match.group(2).strip()
             return {"type": "image", "value": f"{char_name}-{expression}"}
+
+        # <cg id="CG_ID"/>
+        cg_match = re.match(r'<cg\s+id="([^"]+)"\s*/>', line)
+        if cg_match:
+            return {"type": "cg", "value": cg_match.group(1).strip()}
         
         # <content id="xxx">内容</content> (统一格式，包括旁白和对话)
         content_match = re.match(r'<content\s+id="([^"]+)">([^<]+)</content>', line)
@@ -118,7 +123,7 @@ class StoryParser:
             text = content_match.group(2).strip()
             
             # 旁白特殊处理
-            if speaker == "旁白":
+            if speaker.casefold() in {"旁白", "narrator"}:
                 return {"type": "narrator", "text": text}
             else:
                 return {"type": "dialogue", "speaker": speaker, "text": text, "emotion": "neutral"}

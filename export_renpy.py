@@ -9,6 +9,7 @@ from typing import Dict, List, Tuple
 NODE_HEADER_RE = re.compile(r"^===\s*Node:\s*(.+?)\s*===\s*$", re.IGNORECASE)
 SCENE_RE = re.compile(r"^<scene>(.+?)</scene>$")
 IMAGE_RE = re.compile(r"^<image\s+id=\"([^\"]+)\">([^<]+)</image>$")
+CG_RE = re.compile(r'^<cg\s+id="([^"]+)"\s*/>$')
 CONTENT_RE = re.compile(r"^<content\s+id=\"([^\"]+)\">([^<]+)</content>$")
 CHOICE_RE = re.compile(r"^<choice\s+target=\"([^\"]+)\">(.+?)</choice>$")
 JUMP_RE = re.compile(r"^<jump\s+target=\"([^\"]+)\"\s*/>$")
@@ -78,11 +79,25 @@ def collect_background_images(backgrounds_dir: Path, scenes: List[Dict]) -> Dict
         scene_id = str(scene.get("id", "")).strip()
         if not scene_id:
             continue
-        for ext in ext_candidates:
-            candidate = backgrounds_dir / f"{scene_id}{ext}"
-            if candidate.exists() and candidate.is_file():
-                result[scene_id] = f"images/backgrounds/{candidate.name}".replace("\\", "/")
-                break
+        scene_name = re.sub(r'[^\w\s-]', '', str(scene.get("name", ""))).strip().replace(' ', '_')
+        for stem in dict.fromkeys([scene_id, scene_name]):
+            if not stem or scene_id in result:
+                continue
+            for ext in ext_candidates:
+                candidate = backgrounds_dir / f"{stem}{ext}"
+                if candidate.exists() and candidate.is_file():
+                    result[scene_id] = f"images/backgrounds/{candidate.name}".replace("\\", "/")
+                    break
+    return result
+
+
+def collect_cg_images(cg_dir: Path) -> Dict[str, str]:
+    result: Dict[str, str] = {}
+    if not cg_dir.exists():
+        return result
+    for path in sorted(cg_dir.iterdir()):
+        if path.is_file() and path.suffix.lower() in {".png", ".jpg", ".jpeg", ".webp"}:
+            result[path.stem] = f"images/cg/{path.name}".replace("\\", "/")
     return result
 
 
@@ -96,6 +111,7 @@ def convert_to_renpy(
 
     characters_dir = images_root / "characters"
     backgrounds_dir = images_root / "backgrounds"
+    cg_dir = images_root / "cg"
 
     name_to_var: Dict[str, str] = {}
     name_to_image_key: Dict[str, str] = {}
@@ -137,6 +153,12 @@ def convert_to_renpy(
         lines.append(f'image bg_{slug(scene_id)} = "{rpy_str(rel_path)}"')
 
     if bg_map:
+        lines.append("")
+
+    cg_map = collect_cg_images(cg_dir)
+    for cg_id, rel_path in cg_map.items():
+        lines.append(f'image cg_{slug(cg_id)} = "{rpy_str(rel_path)}"')
+    if cg_map:
         lines.append("")
 
     story_nodes = parse_story_nodes(story_text)
@@ -183,11 +205,19 @@ def convert_to_renpy(
                 i += 1
                 continue
 
+            cg_match = CG_RE.match(line)
+            if cg_match:
+                cg_id = cg_match.group(1).strip()
+                if cg_id in cg_map:
+                    lines.append(f"    scene cg_{slug(cg_id)}")
+                i += 1
+                continue
+
             content_match = CONTENT_RE.match(line)
             if content_match:
                 speaker = content_match.group(1).strip()
                 text = content_match.group(2).strip()
-                if speaker == "旁白":
+                if speaker.casefold() in {"旁白", "narrator"}:
                     lines.append(f'    "{rpy_str(text)}"')
                 else:
                     var_name = name_to_var.get(speaker)

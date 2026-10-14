@@ -8,6 +8,8 @@ import os
 from typing import Dict, Any
 from pathlib import Path
 
+from project_paths import projects_root, resolve_project_path
+
 # 加载 .env 文件
 try:
     from dotenv import load_dotenv
@@ -32,6 +34,9 @@ class APIConfig:
     # OpenAI API (用于 GPT-4 和图像生成)
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
     OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL", "https://api.openai.com/v1")
+    # Optional image-only endpoint, independent of the text model proxy.
+    IMAGE_OPENAI_API_KEY = os.getenv("IMAGE_OPENAI_API_KEY") or OPENAI_API_KEY
+    IMAGE_OPENAI_BASE_URL = os.getenv("IMAGE_OPENAI_BASE_URL") or OPENAI_BASE_URL
     
     # Google Gemini API
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
@@ -41,7 +46,7 @@ class APIConfig:
     MODEL = os.getenv("MODEL", "gemini-3-pro-preview")
     
     # 图像生成模型
-    IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gpt-image-1.5") 
+    IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gpt-image-2")
 
 
 # ==================== 全局常量 ====================
@@ -55,7 +60,6 @@ class DesignerConfig:
     # 游戏内容配置
     TOTAL_NODES = int(os.getenv("GAME_TOTAL_NODES", "12"))
     DEFAULT_CHARACTER_COUNT = int(os.getenv("GAME_CHARACTER_COUNT", "3"))
-    PLOT_SEGMENTS_PER_NODE = int(os.getenv("PLOT_SEGMENTS_PER_NODE", "3"))
 
     SYSTEM_PROMPT = f"""你是一位资深的 Visual Novel (视觉小说) 策划，擅长创作引人入胜的故事。
 你的任务是设计一个完整的 Visual Novel 游戏文档，采用**有向无环图（DAG）结构**，允许不同分支分离并汇合，并确保所有角色在复杂的剧情网中都有精彩的表现。
@@ -407,6 +411,30 @@ AVOID: people, characters, text, watermark, low quality, cropped, blurry, bad co
     BACKGROUND_QUALITY = "standard"
     BACKGROUND_STYLE = "vivid"
 
+    CG_PROMPT_TEMPLATE = """Create a full-screen event CG illustration for a visual novel.
+
+Story Context: {story_background}
+Art Style: {art_style}
+Canonical Characters: {characters}
+
+Writer's Shot Description:
+{description}
+
+CRITICAL REQUIREMENTS:
+- Treat the Writer's description as the authoritative storyboard for this exact story moment.
+- Preserve every referenced character's identity, hairstyle, facial features, clothing, age, and proportions.
+- Use the supplied character reference images only for identity and design consistency.
+- Render one coherent 16:9 cinematic composition, not a sprite sheet, collage, character lineup, or title card.
+- Accurately render the requested expressions, gaze, body language, interaction, environment, props, camera angle, lighting, and mood.
+- Do not invent additional characters, props, actions, injuries, romance, or plot information.
+- No text, dialogue, subtitles, UI, logos, signatures, or watermarks.
+- Avoid duplicated characters, malformed hands, extra fingers, fused limbs, cropped faces, and inconsistent costumes.
+
+Revision feedback:
+{feedback}"""
+
+    CG_IMAGE_SIZE = "1792x1024"
+
     # 标题画面 Prompt
     TITLE_IMAGE_PROMPT_TEMPLATE = """A masterpiece, high-quality title screen illustration for a visual novel game.
 
@@ -438,40 +466,23 @@ class WriterConfig:
    - **如果剧情需要新的表情，你可以自由创造新的表情标签（例如 <image id="角色名">despair</image>），后续会自动生成**。
    - **表情名必须是完整的英文单词，严禁使用单字母缩写。**
 5. **重要：场景地点只能使用游戏设计中预定义的场景，不能自创新场景**
-6. **直接输出剧本内容，不要包含任何思考过程或解释性文字**"""
+6. Writer 同时负责判断当前节点是否值得生成一张关键剧情 CG；CG 只用于告白、冲突爆发、
+   真相揭晓、关系转折或结局等值得定格的瞬间，普通对话不要生成 CG。
+7. **直接输出任务要求的内容，不要包含任何思考过程或解释性文字**"""
 
-    PLOT_SPLIT_PROMPT = """你是一位专业的编剧。请将以下剧情节点概要切分成 {segment_count} 个具体的"剧情片段" (Plot Points)。
-{split_instruction}
+    SCRIPT_SYNTHESIS_PROMPT = """你是一位专业的 Visual Novel 编剧。你的任务是将以下由 AI 演员演绎的对话记录（JSON 格式日志）整合成一份文学性强、代入感深的 Visual Novel 剧本。
 
-【节点概要】
-{node_summary}
+【全剧剧情大纲 (Global Outline)】
+{game_outline}
 
-【前情提要】
-{previous_story_summary}
+【角色演绎记录 (JSON)】
+{performances}
 
-【可用角色详情】
-{available_characters}
-
-【可用场景列表】
-{available_scenes}
-
-请输出 JSON 格式列表：
-[
-  {{
-    "id": 1,
-    "summary": "片段1的详细描述...",
-    "characters": ["角色名A", "角色名B"] (必须从【可用角色列表】中选择),
-    "location": "场景名" (必须从【可用场景列表】中选择)
-  }},
-  ...
-]
-
-注意：每个片段的 characters 数组中的角色名必须与【可用角色列表】完全一致。"""
-
-    PLOT_SYNTHESIS_PROMPT = """你是一位专业的 Visual Novel 编剧。你的任务是将以下由 AI 演员演绎的剧情片段（JSON 格式日志）整合成一份文学性强、代入感深的 Visual Novel 剧本。
-
-【剧情片段演绎记录 (JSON)】
-{plot_performances}
+说明：每条记录通常包含 turns 数组；每个 turn 仅有 `character`、`thought`、`action`、`dialogue`、`image` 五个字段。
+- `thought` 是角色内心，只用于帮助你理解潜台词。
+- `action` 是对外可见的非语言动作，只能转写为旁白。
+- `dialogue` 是角色真正说出口的话，只能转写为角色台词。
+- `image` 是当前表情标签。
 
 【剧情上下文 (Story Context)】
 {story_context}
@@ -485,11 +496,16 @@ class WriterConfig:
 【可用场景列表】
 {available_scenes}
 
+【当前节点】
+节点 ID：{node_id}
+节点概要：{node_summary}
+
 【核心任务】
 1. **剧本整合与润色**：
    - 将零散的对话日志串联成连贯的故事。
    - **优化对话节奏**：如果演员的台词过于冗长或不自然，请对其进行适当的精简和润色，使其更符合口语和角色性格。
    - **增强旁白描写**：不要仅仅罗列对话。在对话之间要视情况适当加入丰富的**环境描写、动作描写、神态描写和心理活动**，并且演员对话的内容中的心理描写和动作都要单独列成旁白，而不是放在对话里。
+   - 对于 turns 中的 `thought`，请转写成旁白或心理描写，不要直接当作角色说出口的对白。
    - **第一人称视角**：剧本通常以主角（“我”）的视角展开。请将演员日志中的动作描述转化为“我”的观察或内心独白。
    - **优化整体逻辑**：确保整体剧情逻辑完整，连贯且合理，可以通过增加额外信息确保观众能沉浸在故事环境中并理解剧情发展。
 
@@ -505,6 +521,7 @@ class WriterConfig:
      <image id="角色名">表情</image>
      <content id="角色名">对话内容</content>
      **角色名必须严格使用【可用角色列表】中的名称（包括主角）。**
+     **角色 content 内只能放角色实际说出口的话，禁止混入“某人说道”、动作、神态或语气描写，也不要在台词外包中文引号。所有这些内容必须单独写入旁白 content。**
 
 3. **分支选项与结局**：
    - 如果提供了【后续分支选项】，请在剧本的最末尾生成选项。
@@ -512,6 +529,18 @@ class WriterConfig:
    - **严禁使用出戏的标记**：不要在选项前加【】或其他标签提示（如【顺应局势】、【启动超忆】等），直接写选项内容即可。
    - **结局描述**：如果是叶子节点（结局），请用旁白自然地描述结局，不要使用**【BAD END】**、**【GOOD END】**等出戏的标记。
    - 格式必须为：`<choice target="node_id">选项文本</choice>`
+
+4. **CG 决策与分镜**：
+   - 由你判断当前节点是否存在值得定格的关键画面。普通交谈、过场和重复情绪不要生成 CG。
+   - 每个节点最多生成一张 CG；不需要时 `cgs` 输出空数组。
+   - 需要 CG 时，在剧本中最合适的叙事位置单独插入 `<cg id="CG_ID"/>`。
+   - CG_ID 只能使用英文字母、数字、下划线和连字符，并且在项目内语义清晰。
+   - `characters` 只能填写【可用角色详情】中的角色 ID；无人事件画面可为空数组。
+   - `description` 必须是一段可直接交给 Artist 生成图片的详细中文分镜，至少包含：准确剧情瞬间、
+     场景与时间、画面中每个人物的位置、表情、视线、姿势、动作与互动、镜头景别与角度、
+     前中后景构图、光线、色彩、气氛、需要保持的服装/道具连续性，以及禁止出现的额外人物、
+     文字、水印、错误肢体或剧情外元素。不得只写抽象主题。
+   - CG 只能描绘本节点剧本中真实发生的瞬间，不得添加 Actor 没有表演过的新事件或新台词。
 
 【示例输出风格】
 <scene>高中教室</scene>
@@ -526,11 +555,26 @@ class WriterConfig:
 <image id="雾岛莲">excited</image>
 <content id="雾岛莲">大家！快看这个！</content>
 
-直接输出最终剧本，不要包含任何解释性文字。"""
+严格输出一个 JSON 对象，不要 Markdown 和解释：
+{{
+  "script": "包含完整 VN 标签、并在合适位置包含可选 cg 标签的最终剧本",
+  "cgs": [
+    {{
+      "id": "CG_ID",
+      "node_id": "{node_id}",
+      "characters": ["角色ID"],
+      "description": "详细分镜描述"
+    }}
+  ]
+}}
+`cgs` 中每一项必须且只能包含 id、node_id、characters、description 四个字段。"""
 
     NEXT_SPEAKER_PROMPT = """你是指挥整场戏的导演。
-【当前剧情片段目标】
-{plot_summary}
+  【当前节点目标】
+  {node_goal}
+
+【全剧剧情大纲 (Global Outline)】
+{game_outline}
 
 【可用角色详情】
 {characters}
@@ -539,15 +583,23 @@ class WriterConfig:
 {story_context}
 
 **你的核心职责：**
-1. 判断【剧情片段目标】是否已经达成
+1. 判断【当前节点目标】是否已经达成
 2. 如果目标已完成，请找合适的时机喊停，不要拖沓
+3. 若当前节点目标含 mandatory_revision_evidence，必须逐项检查【剧情上下文】里是否已经
+   出现可见结果。角色提出“要求、建议、准备、将要、带路、去取、让别人做”不算完成；
+   必须继续选择能亲自执行任务或明确说出检验结果的角色。
+4. 不要重复已经发生的移动、质问或摆放物证。每次 advice 都应填补一个尚未出现的结果。
+5. 当任务是检验、比对、演示或揭穿时，指导应让所选角色在这一轮直接完成动作并给出
+   可观察结果；不要只让他要求另一角色去做。不得替 Actor 规定具体台词。
+6. resolution 节点中，必须先完成认罪、完整动机、后果和人物弧，再安排唯一的尾声落句；
+   尾声落句必须是最后一个 Actor 回合。一旦尾声发生，立即 STOP，不得再让凶手供述或嘶喊。
 
-**如果剧情片段目标已基本完成，请立即喊停：**
+**如果当前节点目标已基本完成，请立即喊停：**
 <character>STOP</character>
 
 **否则，如果还有关键剧情未完成，请指定下一位发言者：**
 <character>角色名</character>
-<advice>该角色需要推进的剧情内容,内容需要非常简短，最好只是一个动作能完成的意图，要给接下来其他人说话的空间，并且禁止规定具体台词，</advice>
+<advice>该角色本轮亲自完成的一个动作或明确表达的结果。内容必须简短，给其他人留出回应空间，禁止规定具体台词。</advice>
 
 **示例：**
 <character>夏雨</character>
@@ -557,16 +609,24 @@ class WriterConfig:
 注意你只能选择在场角色中的一位作为下一发言者，不能选择旁白或者其他角色。
 注意保持整体剧情的丰富度，完整性和连贯性。"""
 
-    SUMMARY_PROMPT = """请为以下剧情生成一个简短的摘要（Summary），用于作为后续剧情的"前情提要"。
+    MEMORY_IMPORTANCE_SCORE_PROMPT = """请基于以下节点剧本，给出长期记忆重要性分数。
+输出严格 JSON，格式如下：
+{{
+  "actor_importance": {{"角色名": 0.0-1.0}}
+}}
+规则：
+1. 分数越高表示越值得该角色长期记忆优先召回。
+2. 重点考虑：主线推进、关键事实、关系变化、高后果事件。
+3. 未出现在节点中的角色不必输出。
 
-【剧情内容】
-{story_content}
+【全剧剧情大纲 (Global Outline)】
+{game_outline}
 
-要求：
-1. 概括主要事件和关键对话。
-2. 包含任何重要的伏笔或状态变化。
-3. 长度控制在 200 字以内。
-4. 直接输出摘要内容。"""
+【节点ID】{node_id}
+【在场角色】{actor_names}
+【节点剧本】
+{node_script}
+"""
 
 
 # ==================== 演员 Agent 配置 ====================
@@ -585,10 +645,10 @@ class ActorConfig:
 你需要沉浸在角色中，以第一人称思考和行动，但不要脸谱化和过分体现人物性格，只确保人物不要OOC即可。
 请忘记你是一个 AI 模型，你就是这个角色。"""
 
-    PERFORM_PROMPT = """请根据以下剧情片段的大纲，以及当前的对话记录，继续演绎你在其中的台词和动作。
+    PERFORM_PROMPT = """请根据以下导演指导意见，以及当前的对话记录，继续演绎你在其中的台词和动作。
 
-【剧情片段】
-{plot_summary}
+【导演指导】
+{director_guidance}
 
 【在场其他角色详情】
 {other_characters}
@@ -599,20 +659,32 @@ class ActorConfig:
 【剧情上下文 (Story Context)】
 {story_context}
 
+【本回合唯一任务（再次确认，优先级高于上文中已经发生的表演）】
+{director_guidance}
+
+不得复述【剧情上下文】里已经发生的 action 或 dialogue。必须针对上面的本回合任务，
+生成一个新的、可见且可核验的动作或台词。
+
 请直接开始表演，不要输出任何分析、OOC检查或额外的说明文字。
-请以剧本格式输出你的表演（包含对话和动作描述）：
-<image id="{name}">表情</image>
-<content id="{script_label}">对话内容</content>
+请严格输出一个 JSON 对象，且只能包含以下四个字段：
+{{
+  "thought": "...",
+  "action": "...",
+  "dialogue": "...",
+  "image": "..."
+}}
 
 请注意：
 1. 只输出你自己的部分，不要重复之前的对话。
-2. **极简对话原则**：一次只说一句话，或者做一个动作。严禁长篇大论。不要一次性把所有想法都说完，留给对方回应的空间。
-3. 保持性格一致性，同时说法要自然流畅，避免过度书面化，戏剧化和脸谱化。
-4. 使用 <image id="{name}">表情</image> 标记你的表情变化，**必须单独占一行**。
-   - 优先复用【现有立绘列表】中的表情。
-   - 如果情绪没有和当前已有立绘有很大差别，请尽量复用已有的立绘
-   - **如果且现有立绘均无法代表你此刻的心情，则你需要新的立绘，请创造新的表情名来更好地表达你自己。**
-   - **表情名必须是完整的英文单词（例如 'angry', 'surprised'），严禁使用单字母缩写（如 't', 'a'）或中文。**"""
+2. **极简表演原则**：一次最多做一个动作并说一句话。严禁长篇大论，留给对方回应的空间。
+3. thought 是角色内心想法（仅自己可见，不会传播给其他角色）。
+4. action 只能填写对外可见的非语言动作，不得包含任何台词；没有动作时填空字符串。
+5. dialogue 只能填写角色实际说出口的话，不得包含引号、说话人归属、动作、神态或语气描写；没有说话时填空字符串。
+6. 保持性格一致性，同时说法要自然流畅，避免过度书面化、戏剧化和脸谱化。
+7. image 为表情标签，优先复用【可用表情】中的表情（如无合适可新建英文标签）。
+8. 不要输出除 thought/action/dialogue/image 之外的任何字段、解释文字或代码块。
+9. action 不得突然使用 Core GDD、已提交前文和本回合任务都未声明的新物品；尤其不得凭空
+   掏出手铐、照片、录音、信件或检测报告。需要控制角色时，只能使用在场人物当下可完成的动作。"""
 
     IMAGE_CRITIQUE_PROMPT = """你现在要审核为你生成的角色立绘图片。请以第一人称的角色视角来评价这张图片。
 
@@ -666,23 +738,61 @@ class PathConfig:
     else:
         PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     
+    PROJECT_NAME = None
+    PROJECT_DIR = None
+    PROJECTS_ROOT = str(projects_root())
+
     # 数据目录
-    DATA_DIR = os.path.join(PROJECT_ROOT, "data")
-    IMAGES_DIR = os.path.join(DATA_DIR, "images")
-    CHARACTERS_DIR = os.path.join(IMAGES_DIR, "characters")
-    BACKGROUNDS_DIR = os.path.join(IMAGES_DIR, "backgrounds")  # 背景图目录
+    DATA_DIR = None
+    IMAGES_DIR = None
+    CHARACTERS_DIR = None
+    BACKGROUNDS_DIR = None
+    CG_DIR = None
     
     # 游戏数据文件
-    GAME_DESIGN_FILE = os.path.join(DATA_DIR, "game_design.json")
-    STORY_GRAPH_FILE = os.path.join(DATA_DIR, "story_graph.json")
-    STORY_FILE = os.path.join(DATA_DIR, "story.txt")
-    CHARACTER_INFO_FILE = os.path.join(DATA_DIR, "character_info.json")
+    GAME_DESIGN_FILE = None
+    STORY_GRAPH_FILE = None
+    STORY_FILE = None
+    CHARACTER_INFO_FILE = None
+    CG_MANIFEST_FILE = None
     
     # 日志目录
-    LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
-    TEXT_LOG_DIR = os.path.join(LOG_DIR, "text_log")   # 存放 performance_node.jsonl
-    IMAGE_LOG_DIR = os.path.join(LOG_DIR, "image_log") # 存放审核不合格图片
+    LOG_DIR = None
+    TEXT_LOG_DIR = None
+    IMAGE_LOG_DIR = None
+    RUNTIME_DIR = None
+    CHROMA_DIR = None
+    BUILD_DIR = None
     
+    @classmethod
+    def init(cls, project: str):
+        """Initialize a standalone project path or a legacy data/<name> project."""
+        project_dir = resolve_project_path(project, root=cls.PROJECTS_ROOT)
+
+        cls.PROJECT_NAME = project_dir.name
+        cls.PROJECT_DIR = str(project_dir)
+        # DATA_DIR is retained as a compatibility alias used throughout the workflow.
+        cls.DATA_DIR = cls.PROJECT_DIR
+        cls.IMAGES_DIR = os.path.join(cls.DATA_DIR, "images")
+        cls.CHARACTERS_DIR = os.path.join(cls.IMAGES_DIR, "characters")
+        cls.BACKGROUNDS_DIR = os.path.join(cls.IMAGES_DIR, "backgrounds")
+        cls.CG_DIR = os.path.join(cls.IMAGES_DIR, "cg")
+
+        cls.GAME_DESIGN_FILE = os.path.join(cls.DATA_DIR, "game_design.json")
+        cls.STORY_GRAPH_FILE = os.path.join(cls.DATA_DIR, "story_graph.json")
+        cls.STORY_FILE = os.path.join(cls.DATA_DIR, "story.txt")
+        cls.CHARACTER_INFO_FILE = os.path.join(cls.DATA_DIR, "character_info.json")
+        cls.CG_MANIFEST_FILE = os.path.join(cls.DATA_DIR, "cg_manifest.json")
+
+        cls.RUNTIME_DIR = os.path.join(cls.DATA_DIR, ".ai4vn")
+        cls.LOG_DIR = os.path.join(cls.RUNTIME_DIR, "logs")
+        cls.TEXT_LOG_DIR = os.path.join(cls.LOG_DIR, "text_log")
+        cls.IMAGE_LOG_DIR = os.path.join(cls.LOG_DIR, "image_log")
+        cls.CHROMA_DIR = os.path.join(cls.RUNTIME_DIR, "chroma")
+        cls.BUILD_DIR = os.path.join(cls.RUNTIME_DIR, "builds")
+
+        cls.ensure_directories()
+
     @classmethod
     def ensure_directories(cls):
         """确保所有必要的目录存在"""
@@ -691,13 +801,10 @@ class PathConfig:
             cls.IMAGES_DIR,
             cls.CHARACTERS_DIR,
             cls.BACKGROUNDS_DIR,  # 添加背景目录
+            cls.CG_DIR,
             cls.LOG_DIR,
             cls.TEXT_LOG_DIR,
             cls.IMAGE_LOG_DIR
         ]
         for d in dirs:
             os.makedirs(d, exist_ok=True)
-
-
-# 初始化时创建必要目录
-PathConfig.ensure_directories()

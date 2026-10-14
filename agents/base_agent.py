@@ -38,8 +38,14 @@ class BaseAgent:
             temperature=temperature,
             json_mode=True
         )
-        parsed = JSONParser.parse_ai_response(content)
-        valid, error_message = JSONParser.validate_json_schema(parsed, schema)
+        try:
+            parsed = JSONParser.parse_ai_response(content)
+            parsed = self._unwrap_singleton_object(parsed, schema)
+            valid, error_message = JSONParser.validate_json_schema(parsed, schema)
+        except Exception as exc:
+            parsed = None
+            valid = False
+            error_message = f"JSON 解析失败: {exc}"
         if valid:
             return parsed
 
@@ -59,8 +65,20 @@ class BaseAgent:
             temperature=temperature,
             json_mode=True
         )
-        retry_parsed = JSONParser.parse_ai_response(retry_content)
-        retry_valid, retry_error = JSONParser.validate_json_schema(retry_parsed, schema)
+        try:
+            retry_parsed = JSONParser.parse_ai_response(retry_content)
+            retry_parsed = self._unwrap_singleton_object(retry_parsed, schema)
+            retry_valid, retry_error = JSONParser.validate_json_schema(retry_parsed, schema)
+        except Exception as exc:
+            raise ValueError(f"{object_name} 重试后仍无法解析 JSON: {exc}") from exc
         if not retry_valid:
             raise ValueError(f"{object_name} Schema 校验失败: {retry_error}")
         return retry_parsed
+
+    @staticmethod
+    def _unwrap_singleton_object(value: Any, schema: Dict[str, Any]) -> Any:
+        """Accept a common Gemini quirk: one requested object wrapped in a list."""
+        if schema.get("type") == "object" and isinstance(value, list) and len(value) == 1:
+            if isinstance(value[0], dict):
+                return value[0]
+        return value

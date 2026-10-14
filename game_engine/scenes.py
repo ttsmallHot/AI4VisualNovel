@@ -128,6 +128,7 @@ class DialogueScene(Scene):
         self.current_speaker = None
         self.current_emotion = "neutral"
         self.current_character_image = None
+        self.current_cg_image = None
         
         # 选择支状态
         self.in_choice = False
@@ -140,6 +141,7 @@ class DialogueScene(Scene):
         self.current_bg_name = None # 保存当前背景名
         self.current_char_name = None # 保存当前角色名
         self.background_images = {}
+        self.cg_images = {}
         
         self.load_line()
 
@@ -165,6 +167,9 @@ class DialogueScene(Scene):
         # 尝试查找背景
         # 1. 直接匹配
         bg_path = DataPaths.BACKGROUNDS_DIR / f"{bg_name}.png"
+        if not bg_path.exists():
+            normalized_name = re.sub(r'[^\w\s-]', '', bg_name).strip().replace(' ', '_')
+            bg_path = DataPaths.BACKGROUNDS_DIR / f"{normalized_name}.png"
         if not bg_path.exists():
             # 2. 尝试匹配 ID (假设 game_design 中有 scenes 定义)
             # 这里简单处理：尝试查找包含名称的文件
@@ -211,6 +216,28 @@ class DialogueScene(Scene):
                 return None
         
         return None
+
+    def load_cg_image(self, cg_id: str) -> Optional[pygame.Surface]:
+        """Load and aspect-fill one full-screen event CG."""
+        if cg_id in self.cg_images:
+            return self.cg_images[cg_id]
+        cg_path = DataPaths.CG_DIR / f"{cg_id}.png"
+        if not cg_path.exists():
+            return None
+        try:
+            raw = pygame.image.load(str(cg_path)).convert()
+            image_width, image_height = raw.get_size()
+            scale = max(SCREEN_WIDTH / image_width, SCREEN_HEIGHT / image_height)
+            size = (int(image_width * scale), int(image_height * scale))
+            scaled = pygame.transform.smoothscale(raw, size)
+            x = (size[0] - SCREEN_WIDTH) // 2
+            y = (size[1] - SCREEN_HEIGHT) // 2
+            image = scaled.subsurface((x, y, SCREEN_WIDTH, SCREEN_HEIGHT)).copy()
+            self.cg_images[cg_id] = image
+            return image
+        except Exception as exc:
+            print(f"⚠️ 加载 CG 失败 {cg_path}: {exc}")
+            return None
     
     def load_line(self):
         """加载当前行"""
@@ -227,6 +254,7 @@ class DialogueScene(Scene):
         if line_type == "background" or line_type == "scene":
             bg_name = line.get("value", "").strip()
             self.current_bg_name = bg_name 
+            self.current_cg_image = None
             bg_image = self.load_background_image(bg_name)
             if bg_image:
                 self.current_background = bg_image
@@ -242,6 +270,7 @@ class DialogueScene(Scene):
         if line_type == "image":
             image_value = line.get("value", "").strip()
             self.current_char_name = image_value 
+            self.current_cg_image = None
             
             # 如果是"无"或空，清除立绘
             if not image_value or image_value == "无":
@@ -263,6 +292,18 @@ class DialogueScene(Scene):
                     print(f"⚠️ 未找到角色 ID: {char_name_part}")
                     self.current_character_image = None
             
+            self.index += 1
+            self.load_line()
+            return
+
+        if line_type == "cg":
+            cg_id = line.get("value", "").strip()
+            self.current_cg_image = self.load_cg_image(cg_id)
+            self.current_character_image = None
+            if self.current_cg_image:
+                print(f"🎞️ 显示剧情 CG: {cg_id}")
+            else:
+                print(f"⚠️ 未找到剧情 CG: {cg_id}")
             self.index += 1
             self.load_line()
             return
@@ -470,7 +511,9 @@ class DialogueScene(Scene):
     
     def draw(self, screen):
         # 绘制背景
-        if self.current_background:
+        if self.current_cg_image:
+            screen.blit(self.current_cg_image, (0, 0))
+        elif self.current_background:
             screen.blit(self.current_background, (0, 0))
         else:
             screen.fill(Colors.BG_MORNING)
@@ -484,7 +527,11 @@ class DialogueScene(Scene):
         # screen.blit(time_surf, (30, 25))
 
         # 绘制角色立绘
-        if self.current_character_image and isinstance(self.current_character_image, pygame.Surface):
+        if (
+            not self.current_cg_image
+            and self.current_character_image
+            and isinstance(self.current_character_image, pygame.Surface)
+        ):
             # 居中显示
             char_rect = self.current_character_image.get_rect()
             char_x = (SCREEN_WIDTH - char_rect.width) // 2
@@ -535,4 +582,3 @@ class DialogueScene(Scene):
             for btn in self.choice_buttons:
                 btn.draw(screen, self.font_text)
     
-

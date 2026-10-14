@@ -1,0 +1,35 @@
+.vn-stage { position:relative; isolation:isolate; height:min(72vh,720px); min-height:450px; background:linear-gradient(145deg,#223b42,#101b2c); border:1px solid var(--border); border-radius:10px; overflow:hidden; display:flex; align-items:flex-end; }
+.vn-background { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:-2; }
+.vn-title-stage { background:radial-gradient(ellipse at 75% 15%,#778b98 0%,#364f60 40%,#172a3b 100%); }
+.vn-title-screen { position:absolute; inset:0; overflow:auto; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:38px 8%; color:#fff9ed; text-align:center; background:linear-gradient(180deg,#0e192833,#15213088 50%,#0c1826c9); }
+.vn-title-screen::before { content:''; position:absolute; inset:22px; border:1px solid #fff4d833; pointer-events:none; }
+.vn-title-label { font-size:11px; letter-spacing:.4em; color:#f3e2be; margin-bottom:20px; }
+.vn-title-name { max-width:100%; margin:0; font:500 clamp(32px,4.5vw,68px)/1.35 Georgia,'Times New Roman',serif; letter-spacing:.02em; padding-left:.02em; overflow-wrap:anywhere; text-shadow:0 4px 22px #0b152c88; }
+.vn-title-rule { flex:none; width:64px; height:1px; background:#f5dbab; margin:26px 0; }
+.vn-title-intro { max-width:560px; margin:0; font-size:14px; line-height:1.95; color:#fff5e5; text-shadow:0 1px 6px #0008; display:-webkit-box; -webkit-line-clamp:3; -webkit-box-orient:vertical; overflow:hidden; }
+.vn-title-start { flex:none; position:relative; margin-top:36px; min-width:200px; padding:13px 32px; border:1px solid #f9e1b8b3; border-radius:3px; background:#11253499; color:#fff4dc; font:inherit; font-size:16px; letter-spacing:.06em; cursor:pointer; transition:background .15s,border-color .15s; }
+.vn-title-start:hover,.vn-title-start:focus-visible { background:#f8e6c9; color:#253a48; border-color:#fff5df; outline:2px solid #fff5df; outline-offset:4px; }
+.vn-cast { position:absolute; inset:4% 3% 0; display:flex; align-items:flex-end; justify-content:center; pointer-events:none; z-index:-1; }
+.vn-character { min-width:0; max-width:42%; height:100%; object-fit:contain; object-position:center bottom; }
+.vn-dialogue { font-family:"Avenir Next","Segoe UI",sans-serif; -webkit-font-smoothing:antialiased; position:relative; width:calc(100% - 64px); margin:36px 32px 24px; padding:30px 32px 12px; border:1px solid #e7d5b74d; border-radius:4px 14px 4px 14px; color:#fff8ed; background:linear-gradient(115deg,#122635f5,#152431ef); box-shadow:0 8px 30px #0004,inset 0 1px #fff1; }
+.vn-dialogue .vn-speaker { position:absolute; left:28px; top:0; transform:translateY(-55%); max-width:calc(100% - 56px); padding:5px 22px; border:1px solid #f3dbb6; border-radius:3px 9px 3px 9px; background:#f2dfbf; color:#2b3b44; font-size:15px; font-weight:500; letter-spacing:.01em; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.vn-dialogue .vn-speaker:empty { display:none; }
+.vn-dialogue .vn-text { min-height:64px; max-height:min(27vh,240px); overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; font-size:17px; font-weight:400; line-height:1.8; letter-spacing:normal; padding-right:6px; overflow-wrap:anywhere; }
+.vn-dialogue.vn-can-advance { cursor:pointer; }
+.vn-dialogue .vn-controls { margin-top:8px; }
+.vn-dialogue .vn-advance { display:flex; align-items:center; gap:10px; border:0; border-radius:3px; background:transparent; color:#d8c5a5; padding:8px 0 8px 16px; font:inherit; font-size:12px; letter-spacing:normal; cursor:pointer; }
+.vn-advance::after { content:'▸'; font-size:18px; line-height:1; }
+.vn-dialogue .vn-advance:hover { color:#fff4df; }
+.vn-dialogue .vn-advance:focus-visible { outline:2px solid #f3dbb6; outline-offset:3px; }
+.vn-speaker { color:#a6e2d5; font-weight:650; font-size:18px; margin-bottom:10px; }
+.vn-text { font-size:17px; line-height:1.8; white-space:pre-wrap; }
+.vn-controls { display:flex; justify-content:flex-end; flex-wrap:wrap; gap:10px; margin-top:18px; }
+.vn-controls .btn { background:#254b4b; color:#fff; border-color:#ffffff50; text-align:left; }
+.vn-choice-menu { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:24px; background:#101b2c40; }
+.vn-choice-menu .vn-speaker { flex:none; color:#fff; text-shadow:0 2px 6px #000; margin-bottom:16px; }
+.vn-choice-menu .vn-text { display:none; }
+.vn-choice-menu .vn-controls { width:min(100%,540px); min-height:0; overflow-y:auto; display:flex; flex-direction:column; flex-wrap:nowrap; justify-content:flex-start; gap:14px; margin:0; padding:4px; }
+.vn-choice-menu .btn { flex:none; width:100%; padding:15px 22px; border:1px solid #ffffff88; border-radius:7px; background:#142d3be8; color:#fff; text-align:center; font-size:17px; line-height:1.5; white-space:normal; overflow-wrap:anywhere; box-shadow:0 3px 14px #0003; }
+.vn-choice-menu .btn:hover,.vn-choice-menu .btn:focus-visible { background:#26766cf2; border-color:#c5f4e9; outline:2px solid #c5f4e9; outline-offset:1px; }
+@media(max-width:600px) { .vn-stage { min-height:480px; height:70dvh; } .vn-dialogue { width:calc(100% - 24px); margin:28px 12px 14px; padding:26px 18px 8px; } .vn-dialogue .vn-speaker { left:16px; font-size:13px; padding:4px 16px; } .vn-dialogue .vn-text { font-size:15px; min-height:58px; max-height:26dvh; } .vn-text { font-size:15px; } .vn-cast { bottom:120px; } .vn-character { max-width:50%; } .vn-character:only-child { max-width:90%; } .nav button { white-space:nowrap; } }
+@media(max-width:600px) { .vn-title-screen { padding:36px 30px; } .vn-title-screen::before { inset:14px; } .vn-title-name { font-size:36px; } .vn-title-intro { font-size:13px; -webkit-line-clamp:4; } .vn-title-start { min-width:180px; } }

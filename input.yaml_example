@@ -1,5 +1,5 @@
 requirements:
-  file_path: data/1.txt
+  file_path: games/your_game_name/requirements.txt
 
 oc:
   characters:

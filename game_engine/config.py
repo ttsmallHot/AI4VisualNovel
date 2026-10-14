@@ -56,3 +56,14 @@ class DataPaths:
     IMAGES_DIR = DATA_DIR / "images"
     BACKGROUNDS_DIR = IMAGES_DIR / "backgrounds"
     CHARACTERS_DIR = IMAGES_DIR / "characters"
+    CG_DIR = IMAGES_DIR / "cg"
+
+    @classmethod
+    def configure(cls, project_dir: str | Path) -> None:
+        cls.DATA_DIR = Path(project_dir).resolve()
+        cls.GAME_DESIGN_FILE = cls.DATA_DIR / "game_design.json"
+        cls.STORY_FILE = cls.DATA_DIR / "story.txt"
+        cls.IMAGES_DIR = cls.DATA_DIR / "images"
+        cls.BACKGROUNDS_DIR = cls.IMAGES_DIR / "backgrounds"
+        cls.CHARACTERS_DIR = cls.IMAGES_DIR / "characters"
+        cls.CG_DIR = cls.IMAGES_DIR / "cg"

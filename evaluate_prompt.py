@@ -21,9 +21,7 @@ Please evaluate the two scripts across the following four dimensions:
 
 2. Char. Fidelity (Character Fidelity): Evaluate how well the characters' dialogue and actions align with the provided Character Persona. Do the characters maintain their unique speaking styles, motivations, and standpoints, or do they exhibit Out-Of-Character (OOC) behaviors?
 
-3. Interestingness: Assess the originality and engagement of the plot. Is the narrative compelling? Does it avoid boring cliches while providing unexpected yet reasonable developments?
-
-4. Playability: Evaluate the interactive experience. Are the branching choices presented to the player meaningful and impactful? Does the scene effectively drive the interactive plot forward?
+3. Interestingness: Assess the originality and engagement of the narrative. Is the narrative compelling? Does it avoid boring cliches while providing unexpected yet reasonable developments?
 
 Output Format:
 For each dimension, you must output your evaluation following a strict Chain-of-Thought (CoT) format. First, provide a detailed comparative analysis, then output the final verdict.

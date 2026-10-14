@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>New Game · AI4VisualNovel</title>
+  <link rel="stylesheet" href="create.css">
+</head>
+<body>
+  <header><a href="/#library">← Back to Library</a><span>AI4VisualNovel</span><button type="button" id="theme">Toggle theme</button></header>
+  <main>
+    <div class="intro"><h1>New Game</h1><p>Start with a story. Bring your characters along.</p></div>
+    <form id="create-form">
+      <section class="panel">
+        <div class="section-heading"><h2>Story Concept</h2><span>A rough idea is all you need</span></div>
+        <label>Game title<input id="title" maxlength="80" required placeholder="Give your story a title" autocomplete="off"></label>
+        <label>Story idea <span class="optional">Optional</span><textarea id="story" maxlength="10000" rows="4" placeholder="The world, the characters, and the story you want to tell…"></textarea></label>
+      </section>
+      <section class="panel cast-panel">
+        <div class="section-heading"><h2>Characters</h2><label class="count-label">Total characters<input id="character-count" type="number" min="1" max="20" value="3" required></label></div>
+        <div id="characters"></div>
+        <div class="cast-actions"><p>AI will create any remaining characters to reach your chosen total.</p><button type="button" id="add-character" class="add">＋ Add Character</button></div>
+      </section>
+      <div class="form-footer"><div class="footer-copy"><span>You can refine the details after creating your game.</span><div id="error" role="alert"></div></div><button id="submit" class="primary" type="submit">Create Game <span aria-hidden="true">↗</span></button></div>
+    </form>
+  </main>
+  <template id="character-template">
+    <article class="character">
+      <div class="character-heading"><h3>Characters</h3><button type="button" class="remove" aria-label="Remove character">Remove</button></div>
+      <div class="character-layout">
+        <div class="portrait-field"><label class="upload"><span class="upload-placeholder"><span class="upload-icon" aria-hidden="true">＋</span>Upload Portrait</span><img hidden alt="Character portrait preview"><input class="image" type="file" accept="image/png,image/jpeg,image/webp"><span class="upload-caption">PNG / JPG / WebP<br>Up to 8 MB</span></label><button type="button" class="clear-image" hidden>Remove image</button><span class="image-error" role="alert"></span></div>
+        <div class="character-details"><div class="pair"><label>Name<input class="name" required maxlength="80" placeholder="Character name"></label><label>Gender <span class="optional">Optional</span><input class="gender" maxlength="1000"></label></div><label>Personality and role<textarea class="personality" maxlength="1000" rows="2" placeholder="What is this character like?"></textarea></label><details class="character-more"><summary>Appearance and backstory</summary><label>Appearance<textarea class="appearance" maxlength="1000" rows="2" placeholder="Hair, clothing, and distinctive features"></textarea></label><label>Backstory<textarea class="background" maxlength="1000" rows="2" placeholder="History, relationships, and motivations"></textarea></label></details><label class="radio"><input class="protagonist" type="radio" name="protagonist">Set as protagonist</label></div>
+      </div>
+    </article>
+  </template>
+  <script src="create.js"></script>
+</body>
+</html>

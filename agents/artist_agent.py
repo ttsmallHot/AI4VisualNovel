@@ -2,6 +2,7 @@ import os
 import logging
 import base64
 import hashlib
+import re
 from typing import Dict, Any, List, Optional
 from pathlib import Path
 import json
@@ -45,8 +46,8 @@ class ArtistAgent(BaseAgent):
         """初始化图像生成客户端"""
         if self.provider == "openai":
             from openai import OpenAI
-            self.api_key = self.api_key or APIConfig.OPENAI_API_KEY
-            self.base_url = self.base_url or APIConfig.OPENAI_BASE_URL
+            self.api_key = self.api_key or APIConfig.IMAGE_OPENAI_API_KEY
+            self.base_url = self.base_url or APIConfig.IMAGE_OPENAI_BASE_URL
             
             if not self.api_key:
                 logger.warning("⚠️ OpenAI API Key 未配置！图像生成功能将不可用")
@@ -89,7 +90,11 @@ class ArtistAgent(BaseAgent):
         feedback: Optional[str] = None,
         reference_image_paths: Optional[List[str]] = None,
         story_background: Optional[str] = None,
-        art_style: Optional[str] = None
+        art_style: Optional[str] = None,
+        *,
+        output_dir: Optional[str] = None,
+        image_size: Optional[str] = None,
+        reference_context: str = "",
     ) -> Dict[str, str]:
         """
         为单个角色生成多表情立绘
@@ -101,6 +106,9 @@ class ArtistAgent(BaseAgent):
             reference_image_paths: 强制指定的参考图路径列表 (可选)
             story_background: 故事背景描述
             art_style: 美术风格描述
+            output_dir: 本角色输出目录；省略时使用正式角色目录
+            image_size: 可选图片尺寸
+            reference_context: 可选参考图角色说明
             
         Returns:
             字典，键为表情名，值为图像文件路径
@@ -118,7 +126,7 @@ class ArtistAgent(BaseAgent):
             logger.info(f"   🎨 美术风格: {art_style}")
         
         # 创建角色专属目录
-        character_dir = os.path.join(PathConfig.CHARACTERS_DIR, character_id)
+        character_dir = output_dir or os.path.join(PathConfig.CHARACTERS_DIR, character_id)
         os.makedirs(character_dir, exist_ok=True)
         
         image_paths = {}
@@ -158,7 +166,9 @@ class ArtistAgent(BaseAgent):
                     reference_image_paths=reference_image_paths,
                     feedback=feedback,
                     story_background=story_background,
-                    art_style=art_style
+                    art_style=art_style,
+                    image_size=image_size,
+                    reference_context=reference_context,
                 )
                 
                 if image_path:
@@ -215,13 +225,20 @@ class ArtistAgent(BaseAgent):
         
         return base_prompt
 
-    def _call_image_api(self, prompt: str, reference_image_paths: Optional[List[str]] = None) -> Optional[bytes]:
+    def _call_image_api(
+        self,
+        prompt: str,
+        reference_image_paths: Optional[List[str]] = None,
+        image_size: Optional[str] = None,
+        reference_context: str = "",
+    ) -> Optional[bytes]:
         """调用图像生成 API (OpenAI: images.generate/edit, Google: Models API)"""
         if self.provider == "openai":
             try:
                 # 限制 prompt 长度
-                short_prompt = prompt[:1000]
+                short_prompt = prompt[:4000]
                 model_name = APIConfig.IMAGE_MODEL
+                requested_size = image_size or self.config.IMAGE_SIZE
                 
                 # 情况 1: 有参考图，使用 images.edit (multipart/form-data)
                 if reference_image_paths and any(os.path.exists(p) for p in reference_image_paths):
@@ -232,8 +249,11 @@ class ArtistAgent(BaseAgent):
                             img_bytes = f.read()
                         image_inputs.append((f"reference_{idx}.png", img_bytes, "image/png"))
 
-                    openai_prompt = short_prompt
-                    if len(image_inputs) >= 2:
+                    openai_prompt = (
+                        f"{reference_context}\n\n{short_prompt}"
+                        if reference_context else short_prompt
+                    )
+                    if len(image_inputs) >= 2 and not reference_context:
                         openai_prompt = (
                             "You will receive reference images in order. "
                             "Reference image #1 is the neutral anchor for identity/style consistency. "
@@ -249,17 +269,19 @@ class ArtistAgent(BaseAgent):
                             image=image_inputs,
                             prompt=openai_prompt,
                             n=1,
-                            size=self.config.IMAGE_SIZE
+                            size=requested_size
                         )
                     except Exception as multi_err:
-                        # 兼容旧 SDK/网关：如果多图参数不支持，回退到单图编辑
-                        logger.warning(f"⚠️ OpenAI 多参考图编辑失败，回退单图: {multi_err}")
+                        if len(image_inputs) > 1:
+                            raise RuntimeError("多参考图编辑失败；为避免丢失 neutral 或其他参考图，未降级为单图") from multi_err
+                        # Only unwrap a one-item list; never discard additional references.
+                        logger.warning(f"⚠️ OpenAI 单参考图列表调用失败，改用单文件格式: {multi_err}")
                         response = self.client.images.edit(
                             model=model_name,
                             image=image_inputs[0],
                             prompt=openai_prompt,
                             n=1,
-                            size=self.config.IMAGE_SIZE
+                            size=requested_size
                         )
                 # 情况 2: 纯生成调用
                 else:
@@ -268,7 +290,7 @@ class ArtistAgent(BaseAgent):
                         model=model_name,
                         prompt=short_prompt,
                         n=1,
-                        size=self.config.IMAGE_SIZE,
+                        size=requested_size,
                         response_format="b64_json" # 强制要求 base64 格式，更利于中转站稳定性
                     )
                 
@@ -277,22 +299,29 @@ class ArtistAgent(BaseAgent):
                 if hasattr(data, 'b64_json') and data.b64_json:
                     return base64.b64decode(data.b64_json)
                 elif hasattr(data, 'url') and data.url:
+                    if data.url.startswith("data:") and "," in data.url:
+                        return base64.b64decode(data.url.split(",", 1)[1])
                     import requests
-                    return requests.get(data.url).content
+                    response = requests.get(data.url, timeout=60)
+                    response.raise_for_status()
+                    return response.content
                     
                 return None
 
             except Exception as e:
-                logger.error(f"❌ OpenAI 图像 API 调用失败: {e}")
+                error_text = str(e)
+                if len(error_text) > 500:
+                    error_text = error_text[:500] + "…"
+                logger.error(f"❌ OpenAI 图像 API 调用失败: {error_text}")
                 return None
         
         elif self.provider == "google":
-            contents = [prompt]
+            contents = [f"{reference_context}\n\n{prompt}" if reference_context else prompt]
             if reference_image_paths:
                 valid_refs = [p for p in reference_image_paths if p and os.path.exists(p)]
 
                 # 明确告诉模型多参考图的角色，避免把 neutral 与失败样本混淆
-                if len(valid_refs) >= 2:
+                if len(valid_refs) >= 2 and not reference_context:
                     contents[0] = (
                         "You will receive two reference images in order. "
                         "Reference image #1 is the neutral anchor for identity/style consistency. "
@@ -373,7 +402,10 @@ class ArtistAgent(BaseAgent):
         reference_image_paths: Optional[List[str]] = None,
         feedback: Optional[str] = None,
         story_background: Optional[str] = None,
-        art_style: Optional[str] = None
+        art_style: Optional[str] = None,
+        *,
+        image_size: Optional[str] = None,
+        reference_context: str = "",
     ) -> Optional[str]:
         """生成单张立绘"""
         if not self.available: return None
@@ -387,12 +419,23 @@ class ArtistAgent(BaseAgent):
                 story_background=story_background,
                 art_style=art_style
             )
+            if reference_context:
+                prompt += (
+                    "\n\nFor this reference-based revision, the requested corrections and the "
+                    "reference roles take priority over the default front-facing, waist-up crop "
+                    "and dynamic-pose instructions above. Match the designated reference's "
+                    "viewing angle, body proportions, scale and framing; change only the requested "
+                    "expression or details. Do not invent additional props."
+                )
             
             logger.info(f"   🎨 为 [{name}] 生成立绘 ({expression})...")
             
             # 使用参考图（如果提供）
             # 注意：不再排除 neutral，因为其他角色的 neutral 可能需要参考主角
-            image_data = self._call_image_api(prompt, reference_image_paths)
+            image_data = self._call_image_api(
+                prompt, reference_image_paths=reference_image_paths,
+                image_size=image_size, reference_context=reference_context,
+            )
             
             if image_data:
                 filename = f"{expression}.png"
@@ -415,7 +458,13 @@ class ArtistAgent(BaseAgent):
         time_of_day: str = "",
         atmosphere: str = "peaceful",
         story_background: str = "",
-        art_style: str = ""
+        art_style: str = "",
+        *,
+        feedback: str = "",
+        output_dir: Optional[str] = None,
+        reference_image_paths: Optional[List[str]] = None,
+        image_size: Optional[str] = None,
+        reference_context: str = "",
     ) -> Optional[str]:
         """
         生成场景背景图
@@ -442,10 +491,11 @@ class ArtistAgent(BaseAgent):
         else:
             filename = f"{safe_location}.png"
             
-        file_path = os.path.join(PathConfig.BACKGROUNDS_DIR, filename)
+        file_path = os.path.join(output_dir or PathConfig.BACKGROUNDS_DIR, filename)
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         
         # 检查背景图是否已存在
-        if os.path.exists(file_path):
+        if os.path.exists(file_path) and not feedback:
             logger.info(f"   ✅ 背景图已存在，跳过生成: {file_path}")
             return file_path
         
@@ -462,12 +512,19 @@ class ArtistAgent(BaseAgent):
                 story_background=story_background,
                 art_style=art_style
             )
+            if feedback:
+                prompt += f"\n\nRequested corrections:\n{feedback}"
             
             logger.info(f"   🎨 生成背景: {location}...")
             logger.debug(f"   提示词: {prompt[:150]}...")
             
             # 统一使用 _call_image_api 获取字节数据
-            image_data = self._call_image_api(prompt)
+            image_data = self._call_image_api(
+                prompt,
+                reference_image_paths=reference_image_paths,
+                image_size=image_size or self.config.BACKGROUND_SIZE,
+                reference_context=reference_context,
+            )
             
             if image_data:
                 self._save_image(image_data, Path(file_path))
@@ -515,8 +572,105 @@ class ArtistAgent(BaseAgent):
         logger.info(f"   成功: {len(background_images)}/{len(locations)} 个场景")
         
         return background_images
+
+    def generate_cg(
+        self,
+        cg: Dict[str, Any],
+        characters: List[Dict[str, Any]],
+        reference_image_paths: Optional[List[str]] = None,
+        story_background: str = "",
+        art_style: str = "",
+        feedback: str = "",
+        *,
+        output_dir: Optional[str] = None,
+        image_size: Optional[str] = None,
+        reference_context: str = "",
+    ) -> Optional[str]:
+        """Generate one full-screen event CG from a Writer-authored storyboard."""
+        cg_id = str(cg.get("id", "")).strip()
+        if not re.fullmatch(r"[A-Za-z0-9_-]+", cg_id):
+            raise ValueError(f"无效 CG ID: {cg_id}")
+        if not self.available or not self.client:
+            logger.warning("⚠️ 图像生成不可用")
+            return None
+
+        output_dir = Path(output_dir or PathConfig.CG_DIR)
+        output_dir.mkdir(parents=True, exist_ok=True)
+        output_path = output_dir / f"{cg_id}.png"
+        if output_path.exists() and not feedback:
+            logger.info(f"   ✅ CG 已存在，跳过生成: {output_path}")
+            return str(output_path)
+
+        character_summary = json.dumps(
+            [
+                {
+                    "id": character.get("id", ""),
+                    "name": character.get("name", ""),
+                    "appearance": character.get("appearance", ""),
+                }
+                for character in characters
+            ],
+            ensure_ascii=False,
+        )
+        prompt = self.config.CG_PROMPT_TEMPLATE.format(
+            story_background=story_background,
+            art_style=art_style,
+            characters=character_summary,
+            description=str(cg.get("description", "")).strip(),
+            feedback=feedback or "None. Follow the original storyboard exactly.",
+        )
+        reference_order = ", ".join(
+            f"reference image #{index}: {character.get('id') or character.get('name')}"
+            for index, character in enumerate(characters, 1)
+        )
+        reference_context = reference_context or (
+            "The reference images are canonical character identity anchors in this exact order: "
+            f"{reference_order}. Do not treat any reference as a failed draft."
+            if reference_order else ""
+        )
+        logger.info(f"🎞️ 正在生成剧情 CG: {cg_id}")
+        image_data = self._call_image_api(
+            prompt,
+            reference_image_paths=reference_image_paths,
+            image_size=image_size or self.config.CG_IMAGE_SIZE,
+            reference_context=reference_context,
+        )
+        if not image_data:
+            return None
+        self._save_image(image_data, output_path)
+        return str(output_path)
     
-    def generate_title_image(self, title: str, background_desc: str, character_images: List[str] = None) -> Optional[str]:
+    def generate_image_variation(
+        self, reference_image_paths: List[str], output_dir: str,
+        feedback: str = "", story_background: str = "", art_style: str = "",
+        image_size: Optional[str] = None, reference_context: str = "",
+    ) -> Optional[str]:
+        """Revise an unclassified illustration using its existing image as reference."""
+        if not self.available:
+            return None
+        prompt = (
+            "Create a new variation of the supplied game illustration. "
+            "Preserve subject, composition and style except for the requested corrections.\n"
+            f"Story context: {story_background}\nArt style: {art_style}\n"
+            f"Requested corrections: {feedback or 'Polish the illustration.'}"
+        )
+        data = self._call_image_api(
+            prompt, reference_image_paths=reference_image_paths,
+            image_size=image_size, reference_context=reference_context,
+        )
+        if not data:
+            return None
+        destination = Path(output_dir) / "variation.png"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        self._save_image(data, destination)
+        return str(destination)
+
+    def generate_title_image(
+        self, title: str, background_desc: str, character_images: List[str] = None,
+        *, feedback: str = "", output_dir: Optional[str] = None,
+        art_style: str = "", image_size: Optional[str] = None,
+        reference_context: str = "",
+    ) -> Optional[str]:
         """
         生成游戏标题画面
         
@@ -531,15 +685,13 @@ class ArtistAgent(BaseAgent):
         logger.info(f"🖼️  开始生成标题画面: {title}")
         
         filename = "title_screen.png"
-        file_path = os.path.join(PathConfig.IMAGES_DIR, filename)
+        file_path = os.path.join(output_dir or PathConfig.IMAGES_DIR, filename)
+        Path(file_path).parent.mkdir(parents=True, exist_ok=True)
         
-        # 强制重新生成，因为可能需要更新角色一致性
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-                logger.info(f"   🗑️ 删除旧标题画面，重新生成以匹配角色...")
-            except:
-                pass
+        # 断点续跑保留已有封面，避免重复调用图像接口。
+        if os.path.exists(file_path) and not feedback:
+            logger.info(f"   ✅ 标题画面已存在，跳过生成: {file_path}")
+            return file_path
             
         if not self.available or not self.client:
             logger.warning("⚠️  图像生成不可用")
@@ -550,11 +702,20 @@ class ArtistAgent(BaseAgent):
                 title=title,
                 background=background_desc
             )
+            if art_style:
+                prompt += f"\n\nArt style: {art_style}"
+            if feedback:
+                prompt += f"\n\nRequested corrections:\n{feedback}"
             
             logger.info(f"   🎨 生成标题画面...")
             
             # 统一使用 _call_image_api 获取字节数据
-            image_data = self._call_image_api(prompt, reference_image_paths=character_images)
+            image_data = self._call_image_api(
+                prompt,
+                reference_image_paths=character_images,
+                image_size=image_size or self.config.BACKGROUND_SIZE,
+                reference_context=reference_context,
+            )
             
             if image_data:
                 self._save_image(image_data, Path(file_path))

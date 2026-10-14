@@ -11,6 +11,19 @@ from .config import APIConfig
 
 logger = logging.getLogger(__name__)
 
+# 全局的 BGE-M3 嵌入模型实例（单例，只加载一次）
+_embedding_model_instance = None
+FORCED_EMBEDDING_MODEL = "BAAI/bge-m3"
+
+def get_global_embedding_model():
+    global _embedding_model_instance
+    if _embedding_model_instance is None:
+        logger.info("⏳ 正在加载本地 BGE-M3 Embedding 模型 (第一次运行会自动下载)...")
+        from sentence_transformers import SentenceTransformer
+        _embedding_model_instance = SentenceTransformer(FORCED_EMBEDDING_MODEL)
+        logger.info("✅ 本地 Embedding 模型加载成功！")
+    return _embedding_model_instance
+
 class LLMClient:
     """统一的 LLM 客户端封装"""
     
@@ -100,6 +113,23 @@ class LLMClient:
                     logger.error(f"❌ LLM 调用失败，已重试 {max_retries} 次: {e}")
                     raise
 
+    def get_embedding(
+        self,
+        text: str,
+    ) -> List[float]:
+        """直接使用本地 SentenceTransformer 模型返回 Embedding，无需请求 API。"""
+        if not text or not text.strip():
+            return []
+
+        try:
+            local_model = get_global_embedding_model()
+            # BGE-M3 模型返回的是 numpy.ndarray，转为 python list
+            embedding = local_model.encode(text, normalize_embeddings=True)
+            return embedding.tolist()
+        except Exception as e:
+            logger.error(f"❌ 本地 Embedding 生成失败 {FORCED_EMBEDDING_MODEL}: {e}")
+            raise
+
     def _chat_openai(self, messages: List[Dict[str, Any]], temperature: float, json_mode: bool) -> str:
         if not self.client:
             raise ValueError("OpenAI 客户端未初始化")
@@ -141,14 +171,52 @@ class LLMClient:
             
         response_format = {"type": "json_object"} if json_mode else None
         
+        request_kwargs = {
+            "model": APIConfig.MODEL,
+            "messages": processed_messages,
+            "temperature": temperature,
+            "response_format": response_format,
+        }
+        reasoning_effort = os.getenv("OPENAI_REASONING_EFFORT", "").strip().lower()
+        if reasoning_effort:
+            allowed_efforts = {"none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"}
+            if reasoning_effort not in allowed_efforts:
+                raise ValueError(
+                    "OPENAI_REASONING_EFFORT 必须是 none/minimal/low/medium/high/xhigh/max/ultra 之一"
+                )
+            request_kwargs["reasoning_effort"] = reasoning_effort
+        if json_mode:
+            json_max_tokens = os.getenv("JSON_MAX_TOKENS", "").strip()
+            if json_max_tokens:
+                try:
+                    parsed_max_tokens = int(json_max_tokens)
+                except ValueError as exc:
+                    raise ValueError("JSON_MAX_TOKENS 必须是正整数") from exc
+                if parsed_max_tokens <= 0:
+                    raise ValueError("JSON_MAX_TOKENS 必须是正整数")
+                request_kwargs["max_tokens"] = parsed_max_tokens
+
+        # DeepSeek V4 defaults to thinking mode. This project expects the
+        # structured final answer in ``message.content`` and does not consume
+        # ``reasoning_content``, so use non-thinking mode unless explicitly
+        # overridden. It is also substantially cheaper for the rolling VN run.
+        if "api.deepseek.com" in (self.base_url or "") and APIConfig.MODEL.startswith("deepseek-v4-"):
+            thinking_type = os.getenv("DEEPSEEK_THINKING", "disabled").strip().lower()
+            if thinking_type not in {"enabled", "disabled"}:
+                raise ValueError("DEEPSEEK_THINKING 必须是 enabled 或 disabled")
+            request_kwargs["extra_body"] = {"thinking": {"type": thinking_type}}
+
         try:
-            response = self.client.chat.completions.create(
-                model=APIConfig.MODEL,
-                messages=processed_messages,
-                temperature=temperature,
-                response_format=response_format
-            )
-            return response.choices[0].message.content
+            response = self.client.chat.completions.create(**request_kwargs)
+            finish_reason = getattr(response.choices[0], "finish_reason", None)
+            if finish_reason == "length":
+                raise ValueError(
+                    "LLM 结构化响应因 max_tokens 被截断；请提高 JSON_MAX_TOKENS"
+                )
+            content = response.choices[0].message.content
+            if not isinstance(content, str) or not content.strip():
+                raise ValueError("LLM 返回空正文，拒绝将空响应当作成功")
+            return content
         except Exception as e:
             logger.error(f"OpenAI API 调用失败: {e}")
             raise
@@ -156,8 +224,11 @@ class LLMClient:
     def _chat_google(self, messages: List[Dict[str, Any]], temperature: float, json_mode: bool) -> str:
         if not self.client:
             raise ValueError("Google 客户端未初始化")
-            
-        from google.genai import types
+
+        try:
+            types = __import__("google.genai.types", fromlist=["Part", "Content", "GenerateContentConfig"])
+        except Exception as e:
+            raise ImportError(f"google-genai types 导入失败: {e}")
             
         # 提取系统提示词
         system_instruction = None
@@ -216,3 +287,34 @@ class LLMClient:
         except Exception as e:
             logger.error(f"Google Gemini API 调用失败: {e}")
             raise
+
+    def _embedding_openai(self, text: str, model: str) -> List[float]:
+        if not self.client:
+            raise ValueError("OpenAI 客户端未初始化")
+
+        response = self.client.embeddings.create(model=model, input=text)
+        if not response.data:
+            return []
+        return list(response.data[0].embedding)
+
+    def _embedding_google(self, text: str, model: str) -> List[float]:
+        if not self.client:
+            raise ValueError("Google 客户端未初始化")
+
+        response = self.client.models.embed_content(
+            model=model,
+            contents=text,
+        )
+
+        # 兼容不同 SDK 结构
+        emb_obj = getattr(response, "embedding", None)
+        if emb_obj is not None and hasattr(emb_obj, "values"):
+            return list(emb_obj.values)
+
+        embs = getattr(response, "embeddings", None)
+        if embs:
+            first = embs[0]
+            if hasattr(first, "values"):
+                return list(first.values)
+
+        raise ValueError("Google Embedding 响应格式无法解析")

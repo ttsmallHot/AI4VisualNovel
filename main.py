@@ -21,7 +21,6 @@ from pathlib import Path
 # 添加项目路径
 sys.path.insert(0, str(Path(__file__).parent))
 
-from workflow import WorkflowController
 from agents.config import ProducerConfig, DesignerConfig, PathConfig
 
 
@@ -29,6 +28,15 @@ def load_input_config(input_file: str) -> dict:
     """加载 input.yaml 配置文件。"""
     if not input_file or not os.path.exists(input_file):
         return {}
+
+    if Path(input_file).suffix.lower() == '.json':
+        try:
+            with open(input_file, 'r', encoding='utf-8') as f:
+                config = json.load(f)
+            return config if isinstance(config, dict) else {}
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"⚠️ 读取设计配置失败: {e}，将继续使用默认参数")
+            return {}
 
     try:
         yaml = importlib.import_module("yaml")
@@ -69,6 +77,10 @@ def resolve_design_inputs(args) -> tuple[str, list]:
     if not requirements_path:
         requirements_cfg = input_config.get("requirements", {}) if isinstance(input_config.get("requirements", {}), dict) else {}
         requirements_path = requirements_cfg.get("file_path")
+    if not requirements_path:
+        project_requirements = Path(PathConfig.DATA_DIR) / "requirements.txt"
+        if project_requirements.is_file():
+            requirements_path = str(project_requirements)
 
     oc_cfg = input_config.get("oc", {}) if isinstance(input_config.get("oc", {}), dict) else {}
 
@@ -133,8 +145,10 @@ def design_game_flow(args):
     print("🎬 AI Visual Novel - [阶段 1] 游戏设计模式")
     print("="*70)
     
+    from workflow import WorkflowController
+
     workflow = WorkflowController()
-    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
+    workflow.initialize_agents()
     
     user_requirements, oc_characters = resolve_design_inputs(args)
             
@@ -150,8 +164,10 @@ def script_game_flow(args):
     print("🎬 AI Visual Novel - [阶段 2] 剧本生成模式")
     print("="*70)
     
+    from workflow import WorkflowController
+
     workflow = WorkflowController()
-    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
+    workflow.initialize_agents()
     workflow.run_script_phase()
 
 def render_game_flow(args):
@@ -160,8 +176,10 @@ def render_game_flow(args):
     print("🎬 AI Visual Novel - [阶段 3] 资产渲染模式")
     print("="*70)
     
+    from workflow import WorkflowController
+
     workflow = WorkflowController()
-    workflow.initialize_agents(openai_api_key=args.openai_key, openai_base_url=args.openai_base_url)
+    workflow.initialize_agents()
     workflow.run_render_phase()
 
 
@@ -188,7 +206,7 @@ def export_renpy_flow(args):
     with open(PathConfig.STORY_FILE, "r", encoding="utf-8") as f:
         story_text = f.read()
 
-    out_game_dir = Path(args.renpy_out_dir)
+    out_game_dir = Path(args.renpy_out_dir) if args.renpy_out_dir else Path(PathConfig.BUILD_DIR) / "renpy_project" / "game"
     out_game_dir.mkdir(parents=True, exist_ok=True)
 
     script_content = exporter.convert_to_renpy(
@@ -217,15 +235,15 @@ def main():
         epilog="""
 使用示例:
     # 按阶段生成新游戏
-        python main.py --mode design --input-file input.yaml
-        python main.py --mode script
-        python main.py --mode render
+        python main.py --mode design --project games/demo --input-file input.yaml
+        python main.py --mode script --project games/demo
+        python main.py --mode render --project games/demo
 
     # 仅导出现有数据到 Ren'Py
-        python main.py --mode export-renpy
+        python main.py --mode export-renpy --project games/demo
   
-  # 游玩游戏
-  python main.py --mode play
+    # 游玩游戏
+        python main.py --mode play --project games/demo
 
 环境变量:
   OPENAI_API_KEY     OpenAI API 密钥（用于 GPT 和图像生成）
@@ -240,22 +258,27 @@ def main():
         help='运行模式: \n  design=仅生成大纲设定\n  script=仅根据大纲生成文本剧本\n  render=根据剧本渲染图片素材\n  play=游玩\n  export-renpy=导出 Ren\'Py 项目'
     )
     
+    parser.add_argument('--project', required=True, help='项目名称或项目目录路径（必填）')
     parser.add_argument('--character-count', type=int, default=DesignerConfig.DEFAULT_CHARACTER_COUNT, help='角色数量')
     parser.add_argument('--requirements-file', help='包含游戏构想的文本文件路径（会覆盖 input.yaml 中的 requirements.file_path）')
     parser.add_argument('--input-file', help='统一输入配置文件路径（YAML）')
-    
-    parser.add_argument('--openai-key', help='OpenAI API Key (覆盖环境变量)')
-    parser.add_argument('--openai-base-url', help='OpenAI API Base URL (覆盖环境变量)')
-    parser.add_argument('--renpy-out-dir', default='renpy_export/game', help='Ren\'Py game 目录输出路径')
+    parser.add_argument('--renpy-out-dir', help='Ren\'Py game 目录输出路径（默认写入项目 .ai4vn/builds）')
     parser.add_argument('--renpy-no-copy-assets', action='store_true', help='导出 Ren\'Py 时不复制 images 资源')
     
     parser.add_argument('--debug', action='store_true', help='启用调试模式')
     
     args = parser.parse_args()
+
+    # 初始化项目路径配置
+    from agents.config import PathConfig
+    PathConfig.init(args.project)
+    from game_engine.config import DataPaths
+    DataPaths.configure(PathConfig.DATA_DIR)
     
     # 设置日志
     log_level = logging.DEBUG if args.debug else logging.INFO
     setup_logging(log_level)
+    logging.info(f"=== 项目工作区: {PathConfig.DATA_DIR} ===")
     
     # 根据模式执行
     try:

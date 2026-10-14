@@ -1,21 +1,40 @@
-"""
-AI Visual Novel Agent System
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-自动化生成 Visual Novel 内容的多智能体系统
-"""
+"""AI Visual Novel agent system with lazy public exports."""
 
-from .producer_agent import ProducerAgent
-from .artist_agent import ArtistAgent
-from .writer_agent import WriterAgent
-from .actor_agent import ActorAgent
-from .config import APIConfig, PathConfig
-from .utils import JSONParser, FileHelper, PromptBuilder, TextProcessor
-from .tool_registry import call_tool, list_available_tools
+from importlib import import_module
+
+
+_EXPORTS = {
+    "ProducerAgent": (".producer_agent", "ProducerAgent"),
+    "ArtistAgent": (".artist_agent", "ArtistAgent"),
+    "WriterAgent": (".writer_agent", "WriterAgent"),
+    "ActorAgent": (".actor_agent", "ActorAgent"),
+    "APIConfig": (".config", "APIConfig"),
+    "PathConfig": (".config", "PathConfig"),
+    "JSONParser": (".utils", "JSONParser"),
+    "FileHelper": (".utils", "FileHelper"),
+    "PromptBuilder": (".utils", "PromptBuilder"),
+    "TextProcessor": (".utils", "TextProcessor"),
+    "call_tool": (".tool_registry", "call_tool"),
+    "list_available_tools": (".tool_registry", "list_available_tools"),
+}
+
+
+def __getattr__(name):
+    try:
+        module_name, attribute_name = _EXPORTS[name]
+    except KeyError as exc:
+        raise AttributeError(f"module {__name__!r} has no attribute {name!r}") from exc
+    value = getattr(import_module(module_name, __name__), attribute_name)
+    globals()[name] = value
+    return value
 
 __all__ = [
     'ProducerAgent',
-    'ArtistAgent', 
+    'ArtistAgent',
     'WriterAgent',
+    'ActorAgent',
+    'APIConfig',
+    'PathConfig',
     'JSONParser',
     'FileHelper',
     'PromptBuilder',

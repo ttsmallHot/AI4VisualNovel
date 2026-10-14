@@ -56,12 +56,22 @@ Follow these steps to set up your development environment:
 
 ## 🎮 Visual Novel Generation & Execution
 
+### Web Dashboard
+
+Start the local dashboard to create games, upload character references, edit story graphs and scripts, preview or regenerate visual assets, play games in the browser, and export Ren'Py projects:
+
+```bash
+python dashboard/server.py --port 8765
+```
+
+Open `http://127.0.0.1:8765`. The interface is in English, and the library scans `games/` by default. Generated games, API credentials, logs, and build outputs are kept out of Git; a fresh clone starts with an empty library. See [dashboard/README.md](dashboard/README.md) for configuration and workflow details.
+
 ### 1. Story Generation
 Start the multi-agent collaboration to generate world settings, story graph, scripts, and visual assets. You can provide your requirements via a text file example as follows:
 
 ```yaml
 requirements:
-  file_path: data/1.txt
+  file_path: games/visual_novel_creator/requirements.txt
 
 oc:
   characters:
@@ -72,52 +82,53 @@ oc:
       personality: ""
       appearance: ""
       background: ""
-      neutral_image_path: data/images/characters/Nanami/neutral.png
+      neutral_image_path: games/your_game_name/images/characters/Nanami/neutral.png
 ```
 
 ```bash
 # Generate by phases (recommended)
-python main.py --mode design --input-file input.yaml
-python main.py --mode script
-python main.py --mode render
+python main.py --mode design --project games/your_game_name --input-file input.yaml
+python main.py --mode script --project games/your_game_name
+python main.py --mode render --project games/your_game_name
 
 # Or generate with empty requirements (AI will decide everything)
-python main.py --mode design
-python main.py --mode script
-python main.py --mode render
+python main.py --mode design --project your_game_name
+python main.py --mode script --project your_game_name
+python main.py --mode render --project your_game_name
 ```
-*   **Outputs**: Generated files are stored in `data` folder, including scripts and images.
-*   **Design phase note**: `design` uses a two-step pipeline — Step1 generates outline (`story_outline.groups`), Step2 generates `story_graph` and writes it to `data/story_graph.json`.
+*   **Outputs**: A project name creates or opens `games/<project_name>`. An explicit directory path is also accepted. Existing `data/<project_name>` projects remain readable for compatibility.
+*   **Dashboard library**: Only game folders inside `games/` are listed by default. Unrelated folders without visual-novel project files are ignored.
+*   **Runtime files**: Logs and generated builds are stored under the project's hidden `.ai4vn/` directory.
+*   **Design phase note**: `design` uses a two-step pipeline — Step1 generates outline (`story_outline.groups`), Step2 generates `story_graph` and writes it to the selected project directory.
 
 ### 2. Play the Game
 Execute the built-in Pygame-based engine to experience the generated story:
 ```bash
-python main.py --mode play
+python main.py --mode play --project your_game_name
 ```
-*Note: You can also utilize other game engines (e.g., Unity, Ren'Py) to load the formatted data in the `data` folder for a more polished user experience.*
+*Note: You can also utilize other game engines (e.g., Unity, Ren'Py) to load the formatted data in the selected project folder for a more polished user experience.*
 
-### 3. Export to Ren'Py 
+### 3. Export to Ren'Py
 
 ```bash
 # Export Ren'Py project from existing generated data
-python main.py --mode export-renpy
+python main.py --mode export-renpy --project your_game_name
 ```
 
-After running this command, the required `script.rpy` and corresponding asset files will be generated in the `renpy_export` folder. Copy them into your Ren'Py project directory to run the game.
+After running this command, the required `script.rpy` and assets are generated in `<project>/.ai4vn/builds/renpy_project/`.
 
-### 3. Packaging & Distribution
+### 4. Packaging & Distribution
 If you want to distribute your Pygame masterpiece, build a standalone executable to share your game.
 
 - **For Windows**:
   ```batch
-  pyinstaller --onefile --windowed --name "AI4VisualNovel" --add-data "data;data" main.py
+  pyinstaller --onefile --windowed --name "your_game_name" --add-data "data/your_game_name;data/your_game_name" main.py
   ```
 - **For macOS**:
   ```bash
-  pyinstaller --onefile --windowed --name "AI4VisualNovel" --add-data "data:data" main.py
+  pyinstaller --onefile --windowed --name "your_game_name" --add-data "data/your_game_name:data/your_game_name" main.py
   ```
 
 ## 📜 License
 This project is licensed under the [Apache License 2.0](LICENSE).
   
-
