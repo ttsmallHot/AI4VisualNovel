@@ -278,7 +278,7 @@ class ArtistAgent(BaseAgent):
                     return base64.b64decode(data.b64_json)
                 elif hasattr(data, 'url') and data.url:
                     import requests
-                    return requests.get(data.url).content
+                    return requests.get(data.url, timeout=30).content
                     
                 return None
 
