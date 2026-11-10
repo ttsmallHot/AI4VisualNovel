@@ -222,6 +222,11 @@ class ArtistAgent(BaseAgent):
                 # 限制 prompt 长度
                 short_prompt = prompt[:1000]
                 model_name = APIConfig.IMAGE_MODEL
+                # Map legacy DALL-E dimensions to GPT Image portrait/landscape sizes.
+                image_size = {
+                    "1024x1792": "1024x1536",
+                    "1792x1024": "1536x1024",
+                }.get(self.config.IMAGE_SIZE, self.config.IMAGE_SIZE)
                 
                 # 情况 1: 有参考图，使用 images.edit (multipart/form-data)
                 if reference_image_paths and any(os.path.exists(p) for p in reference_image_paths):
@@ -249,7 +254,7 @@ class ArtistAgent(BaseAgent):
                             image=image_inputs,
                             prompt=openai_prompt,
                             n=1,
-                            size=self.config.IMAGE_SIZE
+                            size=image_size
                         )
                     except Exception as multi_err:
                         # 兼容旧 SDK/网关：如果多图参数不支持，回退到单图编辑
@@ -259,17 +264,17 @@ class ArtistAgent(BaseAgent):
                             image=image_inputs[0],
                             prompt=openai_prompt,
                             n=1,
-                            size=self.config.IMAGE_SIZE
+                            size=image_size
                         )
                 # 情况 2: 纯生成调用
                 else:
                     logger.info(f"🎨 正在调用【OpenAI Images Generations API】(模型: {model_name})")
+                    # GPT Image returns base64 without response_format.
                     response = self.client.images.generate(
                         model=model_name,
                         prompt=short_prompt,
                         n=1,
-                        size=self.config.IMAGE_SIZE,
-                        response_format="b64_json" # 强制要求 base64 格式，更利于中转站稳定性
+                        size=image_size,
                     )
                 
                 # 处理响应数据 (支持 url 或 b64_json)
