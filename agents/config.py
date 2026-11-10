@@ -41,7 +41,7 @@ class APIConfig:
     MODEL = os.getenv("MODEL", "gemini-3-pro-preview")
     
     # 图像生成模型
-    IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gpt-image-1.5") 
+    IMAGE_MODEL = os.getenv("IMAGE_MODEL", "gpt-image-2.6-sunburst")
 
 
 # ==================== 全局常量 ====================
